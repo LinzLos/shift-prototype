@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <!-- Shift logomark, scaled from 26×26 to fit centered in 32×32 (3px inset each side) -->
+  <g transform="translate(3, 3) scale(1)">
+    <path
+      d="M15 21L18 18M18 18L15 15M18 18H14C11.2386 18 9 15.7614 9 13C9 10.2386 6.76142 8 4 8H2.5M15 5L18 8M18 8L15 11M18 8L14 8C12.8744 8 11.8357 8.37194 11 8.99963M2.5 18H4C5.12561 18 6.16434 17.6277 7 17M13 25C6.37258 25 1 19.6274 1 13C1 6.37258 6.37258 1 13 1C19.6274 1 25 6.37258 25 13C25 19.6274 19.6274 25 13 25Z"
+      stroke="#CE430A"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+</svg>

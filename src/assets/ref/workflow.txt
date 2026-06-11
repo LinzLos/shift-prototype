@@ -1,0 +1,100 @@
+CLI WORKFLOW (SHIFT v1.0)
+
+0. Start
+Open 2 terminals
+
+Terminal 1 (run app):
+cd project
+npm run dev
+open localhost in browser
+
+Terminal 2 (builder):
+cd project
+claude
+
+1. Re-anchor context
+Read workflow.txt and task.txt
+Paste current state and next steps into Claude
+Remind yourself which Shift flow you are building
+
+2. Define current loop
+Write one line only:
+
+Current loop: [one specific task]
+
+Examples:
+- Current loop: build queue overview with risk signals
+- Current loop: add queue detail panel for staffing review
+- Current loop: build reassignment modal with team member states
+- Current loop: show confirmation state after reassignment
+- Current loop: tighten spacing and hierarchy in queue detail view
+
+3. Build
+Give the builder one clear constrained instruction
+One change only
+No extra features
+No broad redesign
+
+4. See
+Refresh localhost
+Watch behavior and layout
+Do not guess
+Observe what is clear and what is not
+
+5. Fix structure first
+Check:
+- flow order
+- screen hierarchy
+- state logic
+- what changes between states
+- what stays stable
+- whether the action path is obvious
+
+Do not jump to polish if the flow logic is weak
+
+6. Refine
+Only after structure is working:
+- spacing
+- typography hierarchy
+- interaction feedback
+- transitions
+- visual clarity
+
+7. Repeat loop
+Define next loop
+Build
+See
+Fix
+Work in 5 to 15 minute cycles
+
+8. Save progress
+During session:
+git add .
+git commit -m "what changed"
+
+End of session:
+git add .
+git commit -m "end of session progress"
+
+Optional:
+git push
+
+9. Update workflow.txt and task.txt
+Write down:
+- current flow in progress
+- what is working
+- what still needs work
+- next loop
+
+10. End session clean
+Stop server with Ctrl + C
+Close terminals
+
+RULES
+- one task per loop
+- structure before visuals
+- do not add scope mid-loop
+- kill weak ideas fast
+- localhost is truth
+- prototype the decision flow, not the full product
+- keep focus on operator trust, constraints, and action clarity

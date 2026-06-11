@@ -1,0 +1,44 @@
+Current loop: build the core Queue Health → Queue Detail → Reassign Staff flow
+
+Scope:
+- focus only on Flow 1
+- no full product expansion
+- no extra navigation patterns unless required for this flow
+- no new dashboards beyond what supports the flow
+- no secondary flows yet
+- no visual polish work unless structure is already clear
+
+Flow goal:
+An operations lead sees a queue at risk, opens that queue, reviews the cause, and reassigns a team member to stabilize it.
+
+Core states to support:
+1. Queue overview
+2. Queue detail
+3. Reassign staff modal or side panel
+4. Confirmation / updated state
+
+Focus:
+- make the action path obvious
+- show why a queue needs attention
+- show enough staffing context to make a decision
+- make constraints visible before confirmation
+- make result of action easy to understand
+
+Success:
+- user can identify which queue needs action
+- user can drill into one queue without confusion
+- user can understand who is eligible for reassignment
+- reassignment feels controlled, not risky or blind
+- confirmation makes the system response clear
+
+What to watch in localhost:
+- is it obvious which queue is at risk and why?
+- is the path from overview to action clean?
+- can I understand the staffing decision without over-reading?
+- are trained vs assigned states clear?
+- does confirmation feel meaningful, not cosmetic?
+
+Notes:
+- strongest hiring signal is decision support under constraints
+- prioritize trust, clarity, and consequences
+- keep the prototype tight and believable
