@@ -151,6 +151,24 @@
 .nav-item-wrap a { transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease; }
 .nav-item-wrap:hover a { background: #FFFFFF !important; box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important; transform: scale(1.08); }
 
+/* Tiny Wire credit footer */
+.tw-credit {
+  max-width: 760px;
+  margin: 48px auto 8px;
+  padding: 0 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+.tw-credit a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.18s ease;
+}
+.tw-credit a:hover { color: var(--text-primary); }
+
 body {
   font-family: 'DM Sans', sans-serif;
   background: var(--surface-page);

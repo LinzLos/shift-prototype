@@ -36,6 +36,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         }}
       >
         {children}
+
+        <footer className="tw-credit">
+          This prototype uses generalized terminology. Internal system names, proprietary metrics, and business-specific thresholds have been abstracted to protect confidential information. Visuals were built using{' '}
+          <a href="https://linzlos.github.io/tiny-wire/" target="_blank" rel="noopener noreferrer">Tiny Wire</a>{' '}
+          (<a href="https://github.com/LinzLos/tiny-wire" target="_blank" rel="noopener noreferrer">source</a>), a design system I created. The design decisions, constraints, and interactions shown are accurate representations of the work.
+        </footer>
       </main>
 
     </div>
