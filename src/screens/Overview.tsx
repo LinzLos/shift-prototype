@@ -370,10 +370,10 @@ function FilterPills({ active, onChange, pills }: { active: string; onChange: (l
             }}
           >
             {pill.check && isActive && <CheckIcon />}
-            <span style={{ fontWeight: 700, color: isActive ? css.surface : css.warning }}>
+            <span style={{ fontWeight: 700, color: isActive ? css.surface : css.textSecondary }}>
               {pill.label}
             </span>
-            <span style={{ fontWeight: 400, color: isActive ? css.surface : css.warning }}>
+            <span style={{ fontWeight: 400, color: isActive ? css.surface : css.textTertiary }}>
               {pill.count}
             </span>
           </button>

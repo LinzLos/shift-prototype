@@ -13,7 +13,7 @@ function MenuBrand() {
       flexShrink: 0,
     }}>
       <svg width="24" height="24" fill="none" viewBox="0 0 26 26">
-        <path d={svgPaths.p4be94d2} stroke="#CE430A" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+        <path d={svgPaths.p4be94d2} stroke="var(--logo)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
       </svg>
     </div>
   )
