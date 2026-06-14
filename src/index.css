@@ -201,7 +201,7 @@
 }
 .nav-item-wrap:hover .nav-tooltip { opacity: 1; transition-delay: 600ms; }
 .nav-item-wrap a { transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease; }
-.nav-item-wrap:hover a { background: #FFFFFF !important; box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important; transform: scale(1.08); }
+.nav-item-wrap:hover a { background: var(--surface-muted) !important; }
 
 /* Tiny Wire credit footer */
 .tw-credit {

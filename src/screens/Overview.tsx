@@ -58,10 +58,10 @@ function StarButton({ filled, onToggle }: { filled: boolean; onToggle: (e: React
         transition: 'transform 0.18s ease',
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 16 16" fill={filled ? '#629460' : 'none'}>
+      <svg width="20" height="20" viewBox="0 0 16 16" fill={filled ? 'var(--accent)' : 'none'}>
         <path
           d="M8 1.5L9.854 5.257L14 5.865L11 8.786L11.708 12.914L8 10.963L4.292 12.914L5 8.786L2 5.865L6.146 5.257L8 1.5Z"
-          stroke="#629460"
+          stroke="var(--accent)"
           strokeWidth="1.3"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -150,10 +150,10 @@ function FavoritesDemoGroup() {
           width="28"
           height="28"
           viewBox="0 0 16 16"
-          style={{ display: 'block', fill: filled ? 'var(--brand)' : 'none', transition: 'fill 0.25s ease' }}
+          style={{ display: 'block', fill: filled ? 'var(--accent)' : 'none', transition: 'fill 0.25s ease' }}
           className={phase === 'selected' ? 'star-jump-shake' : undefined}
         >
-          <path d={STAR_PATH} stroke="#629460" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={STAR_PATH} stroke="var(--accent)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
     </div>
