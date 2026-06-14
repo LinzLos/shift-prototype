@@ -64,7 +64,7 @@ function HeaderBar() {
           fontWeight: 700,
           fontSize: 20,
           letterSpacing: '-0.08px',
-          color: css.textSecondary,
+          color: css.textPrimary,
           margin: 0,
         }}>
           Performance
@@ -233,7 +233,7 @@ function ThroughputChart() {
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 16, height: 2, background: '#1b4079', borderRadius: 1 }} />
+            <div style={{ width: 16, height: 2, background: 'var(--info)', borderRadius: 1 }} />
             <span style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary }}>Loans completed</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -328,7 +328,7 @@ function ThroughputChart() {
       {/* Insight banner */}
       <div style={{
         marginTop: 12,
-        background: '#eceff4',
+        background: 'var(--info-light)',
         border: '1px solid #afbcd0',
         borderRadius: 8,
         padding: '10px 14px',
@@ -341,7 +341,7 @@ function ThroughputChart() {
           <path d="M7 4.5V7.5" stroke="#1b4079" strokeWidth="1.3" strokeLinecap="round" />
           <circle cx="7" cy="9.5" r="0.6" fill="#1b4079" />
         </svg>
-        <span style={{ fontFamily: font.body, fontSize: 12, color: '#1b4079', lineHeight: 1.5 }}>
+        <span style={{ fontFamily: font.body, fontSize: 12, color: 'var(--info)', lineHeight: 1.5 }}>
           Handle time has improved 12% since 9am — team is on track to meet today's target if current pace holds.
         </span>
       </div>
@@ -376,14 +376,14 @@ function HandlePill({ days }: { days: number }) {
     <span style={{
       display: 'inline-flex',
       alignItems: 'center',
-      background: '#f3f0ef',
-      border: '1px solid #c3b7b1',
+      background: 'var(--warning-light)',
+      border: '1px solid var(--warning-mid)',
       borderRadius: 100,
       padding: '2px 8px',
       fontFamily: font.body,
       fontSize: 11,
       fontWeight: 500,
-      color: '#6b4b3e',
+      color: 'var(--warning)',
       whiteSpace: 'nowrap',
     }}>
       {days}d

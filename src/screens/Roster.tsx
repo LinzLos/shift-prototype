@@ -75,7 +75,7 @@ function HeaderBar({
           fontWeight: 700,
           fontSize: 20,
           letterSpacing: '-0.08px',
-          color: css.textSecondary,
+          color: css.textPrimary,
           margin: 0,
         }}>
           Roster
@@ -147,15 +147,15 @@ function DaysPill({ days }: { days: number }) {
     <span style={{
       display: 'inline-flex',
       alignItems: 'center',
-      background: '#f3f0ef',
-      border: '0.8px solid #c3b7b1',
+      background: 'var(--warning-light)',
+      border: '0.8px solid var(--warning-mid)',
       borderRadius: 6,
       padding: '0 12px',
       height: 20,
       fontFamily: font.body,
       fontSize: 9,
       fontWeight: 700,
-      color: '#6b4b3e',
+      color: 'var(--warning)',
       letterSpacing: '0.45px',
       whiteSpace: 'nowrap',
     }}>
@@ -231,15 +231,15 @@ function QueueChip({ label }: { label: string }) {
     <span style={{
       display: 'inline-flex',
       alignItems: 'center',
-      background: '#f2f6f2',
-      border: '0.8px solid #629460',
+      background: 'var(--brand-light)',
+      border: '0.8px solid var(--brand)',
       borderRadius: 6,
       padding: '0 12px',
       height: 20,
       fontFamily: font.body,
       fontSize: 9,
       fontWeight: 700,
-      color: '#3f603e',
+      color: 'var(--brand-dark)',
       letterSpacing: '0.45px',
       whiteSpace: 'nowrap',
     }}>
@@ -319,7 +319,7 @@ function RosterTable({
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
-            background: '#eceff4',
+            background: 'var(--info-light)',
             border: '1px solid #afbcd0',
             borderRadius: 100,
             padding: '0 8px',
@@ -327,7 +327,7 @@ function RosterTable({
             fontFamily: font.body,
             fontSize: 12,
             fontWeight: 700,
-            color: '#1b4079',
+            color: 'var(--info)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
           }}>
@@ -351,7 +351,7 @@ function RosterTable({
                 fontFamily: font.body,
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#ffffff',
+                color: 'var(--text-inverse)',
                 whiteSpace: 'nowrap',
               }}
             >

@@ -181,9 +181,9 @@ function InfoPill({ label }: { label: string }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      background: '#eceff4', border: '1px solid #afbcd0', borderRadius: 100,
+      background: 'var(--info-light)', border: '1px solid #afbcd0', borderRadius: 100,
       padding: '0 8px', height: 23,
-      fontFamily: font.body, fontSize: 12, fontWeight: 700, color: '#1b4079',
+      fontFamily: font.body, fontSize: 12, fontWeight: 700, color: 'var(--info)',
       whiteSpace: 'nowrap',
     }}>
       {label}
@@ -195,9 +195,9 @@ function InfoPill({ label }: { label: string }) {
 // ─── Health dot ───────────────────────────────────────────────────────────────
 
 const healthColor: Record<QueueHealth, string> = {
-  healthy: '#629460',
+  healthy: 'var(--brand)',
   warning: '#8a5c00',
-  'at-risk': '#CE430A',
+  'at-risk': 'var(--danger)',
 }
 const healthLabel: Record<QueueHealth, string> = {
   healthy: 'Healthy',
@@ -205,13 +205,13 @@ const healthLabel: Record<QueueHealth, string> = {
   'at-risk': 'At risk',
 }
 const healthBg: Record<QueueHealth, string> = {
-  healthy: '#f2f6f2',
-  warning: '#f3f0ef',
+  healthy: 'var(--brand-light)',
+  warning: 'var(--warning-light)',
   'at-risk': 'rgba(206,67,10,0.06)',
 }
 const healthBorder: Record<QueueHealth, string> = {
-  healthy: '#c8d9c7',
-  warning: '#c3b7b1',
+  healthy: 'var(--brand-mid)',
+  warning: 'var(--warning-mid)',
   'at-risk': 'rgba(206,67,10,0.2)',
 }
 
@@ -397,7 +397,7 @@ function SourceQueuePicker({
                     {q.suggested && (
                       <span style={{
                         fontFamily: font.body, fontSize: 9, fontWeight: 700,
-                        color: '#1b4079', background: '#eceff4',
+                        color: 'var(--info)', background: 'var(--info-light)',
                         border: '0.8px solid #afbcd0', borderRadius: 100,
                         padding: '2px 6px', letterSpacing: '0.4px',
                       }}>
@@ -415,7 +415,7 @@ function SourceQueuePicker({
                     <WarningIcon color={q.health === 'at-risk' ? '#CE430A' : '#8a5c00'} />
                     <span style={{
                       fontFamily: font.body, fontSize: 10,
-                      color: q.health === 'at-risk' ? '#CE430A' : '#8a5c00',
+                      color: q.health === 'at-risk' ? 'var(--danger)' : '#8a5c00',
                     }}>
                       {q.warningReason}
                     </span>
@@ -435,7 +435,7 @@ function SourceQueuePicker({
 function AISuggestionBanner({ reason }: { reason: string }) {
   return (
     <div style={{
-      background: '#eceff4', border: '1px solid #afbcd0', borderRadius: 8,
+      background: 'var(--info-light)', border: '1px solid #afbcd0', borderRadius: 8,
       padding: '7px 10px', display: 'flex', alignItems: 'flex-start', gap: 7,
     }}>
       <div style={{ flexShrink: 0, marginTop: 1 }}>
@@ -443,7 +443,7 @@ function AISuggestionBanner({ reason }: { reason: string }) {
       </div>
       <span style={{
         fontFamily: font.body, fontSize: 11, fontWeight: 500,
-        color: '#1b4079', lineHeight: 1.5,
+        color: 'var(--info)', lineHeight: 1.5,
       }}>
         {reason}
       </span>
@@ -455,8 +455,8 @@ function AISuggestionBanner({ reason }: { reason: string }) {
 
 function SourceWarningBanner({ reason, health }: { reason: string; health: QueueHealth }) {
   const color = health === 'at-risk' ? '#CE430A' : '#8a5c00'
-  const bg = health === 'at-risk' ? 'rgba(206,67,10,0.06)' : '#f3f0ef'
-  const border = health === 'at-risk' ? 'rgba(206,67,10,0.2)' : '#c3b7b1'
+  const bg = health === 'at-risk' ? 'rgba(206,67,10,0.06)' : 'var(--warning-light)'
+  const border = health === 'at-risk' ? 'rgba(206,67,10,0.2)' : 'var(--warning-mid)'
   return (
     <div style={{
       background: bg, border: `1px solid ${border}`, borderRadius: 8,
@@ -559,9 +559,9 @@ function LeftPanel({
                   {s.trainedQueues.map((q) => (
                     <span key={q} style={{
                       fontFamily: font.body, fontSize: 9, fontWeight: 700,
-                      color: q === 'Refinance' ? '#3f603e' : css.textTertiary,
-                      background: q === 'Refinance' ? '#f2f6f2' : '#f7f4f3',
-                      border: `0.8px solid ${q === 'Refinance' ? '#c8d9c7' : '#e8e3e2'}`,
+                      color: q === 'Refinance' ? 'var(--brand-dark)' : css.textTertiary,
+                      background: q === 'Refinance' ? 'var(--brand-light)' : 'var(--surface-subtle)',
+                      border: `0.8px solid ${q === 'Refinance' ? 'var(--brand-mid)' : 'var(--border-light)'}`,
                       borderRadius: 6, padding: '3px 8px',
                     }}>
                       {q}
@@ -635,10 +635,10 @@ function RightPanel({
       {/* Staged incoming */}
       {staged.length > 0 && (
         <div style={{ borderTop: `1px solid ${css.border}` }}>
-          <div style={{ padding: '6px 18px', background: '#f2f6f2', borderBottom: `1px solid #c8d9c7` }}>
+          <div style={{ padding: '6px 18px', background: 'var(--brand-light)', borderBottom: `1px solid var(--brand-mid)` }}>
             <span style={{
               fontFamily: font.body, fontSize: 10, fontWeight: 700,
-              color: '#3f603e', letterSpacing: '0.5px', textTransform: 'uppercase',
+              color: 'var(--brand-dark)', letterSpacing: '0.5px', textTransform: 'uppercase',
             }}>
               Incoming · {staged.length} staged
             </span>
@@ -648,7 +648,7 @@ function RightPanel({
               key={name}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12,
-                padding: '8px 18px', borderBottom: `1px solid #c8d9c7`,
+                padding: '8px 18px', borderBottom: `1px solid var(--brand-mid)`,
                 background: 'rgba(98,148,96,0.06)',
               }}
             >
@@ -793,7 +793,7 @@ export default function RosterModal({ onClose, onApply }: RosterModalProps) {
                 background: staged.length > 0 ? 'var(--brand)' : '#d9d9d9',
                 border: 'none', borderRadius: 6,
                 fontFamily: font.body, fontSize: 12, fontWeight: 700,
-                color: staged.length > 0 ? '#ffffff' : css.textTertiary,
+                color: staged.length > 0 ? 'var(--text-inverse)' : css.textTertiary,
                 cursor: staged.length > 0 ? 'pointer' : 'not-allowed',
               }}
             >

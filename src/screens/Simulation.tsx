@@ -158,7 +158,7 @@ function HeaderBar() {
       alignItems: 'center',
       gap: 4,
     }}>
-      <span style={{ fontFamily: font.heading, fontWeight: 700, fontSize: 20, letterSpacing: '-0.08px', color: css.textSecondary }}>
+      <span style={{ fontFamily: font.heading, fontWeight: 700, fontSize: 20, letterSpacing: '-0.08px', color: css.textPrimary }}>
         Simulation
       </span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '8px 10px' }}>
@@ -177,7 +177,7 @@ function TypePill({ label }: { label: string }) {
   return (
     <span style={{
       fontFamily: font.body, fontSize: 9, fontWeight: 700, letterSpacing: '0.45px',
-      color: css.warning, background: '#f3f0ef', border: '0.8px solid #c3b7b1',
+      color: css.warning, background: 'var(--warning-light)', border: '0.8px solid var(--warning-mid)',
       borderRadius: 6, padding: '4px 12px', whiteSpace: 'nowrap',
     }}>
       {label}
@@ -189,7 +189,7 @@ function AttributePill({ label }: { label: string }) {
   return (
     <span style={{
       fontFamily: font.body, fontSize: 9, fontWeight: 700, letterSpacing: '0.45px',
-      color: css.textTertiary, background: css.surfacePage, border: '0.8px solid #e8e3e2',
+      color: css.textTertiary, background: css.surfacePage, border: '0.8px solid var(--border-light)',
       borderRadius: 6, padding: '4px 12px', whiteSpace: 'nowrap',
     }}>
       {label}
@@ -200,7 +200,7 @@ function AttributePill({ label }: { label: string }) {
 function InsightBanner({ text }: { text: string }) {
   return (
     <div style={{
-      background: '#eceff4', border: '1px solid #afbcd0', borderRadius: 10,
+      background: 'var(--info-light)', border: '1px solid #afbcd0', borderRadius: 10,
       padding: '8px 12px', fontFamily: font.body, fontSize: 13, color: css.info, lineHeight: 1.4,
     }}>
       {text}
@@ -279,7 +279,7 @@ function ConditionCard({
           <div
             onClick={() => !editing && setEditing(true)}
             style={{
-              background: '#f2f6f2', border: `1px solid ${editing ? '#629460' : '#c8d9c7'}`,
+              background: 'var(--brand-light)', border: `1px solid ${editing ? 'var(--brand)' : 'var(--brand-mid)'}`,
               borderRadius: 16, padding: 12, minWidth: 120, cursor: editing ? 'default' : 'pointer',
               transition: 'border-color 0.15s ease',
               position: 'relative',
@@ -369,9 +369,9 @@ function AddConditionForm({
                 onClick={() => setSelected(t)}
                 style={{
                   fontFamily: font.body, fontSize: 12, fontWeight: 600,
-                  color: active ? '#3f603e' : css.textSecondary,
-                  background: active ? '#f2f6f2' : css.surface,
-                  border: `1px solid ${active ? '#629460' : css.border}`,
+                  color: active ? 'var(--brand-dark)' : css.textSecondary,
+                  background: active ? 'var(--brand-light)' : css.surface,
+                  border: `1px solid ${active ? 'var(--brand)' : css.border}`,
                   borderRadius: 8, padding: '6px 14px', cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -397,7 +397,7 @@ function AddConditionForm({
             </div>
             <ArrowRightIcon />
             {/* Proposed input */}
-            <div style={{ background: '#f2f6f2', border: `1.5px solid #629460`, borderRadius: 12, padding: '10px 14px', minWidth: 110 }}>
+            <div style={{ background: 'var(--brand-light)', border: `1.5px solid var(--brand)`, borderRadius: 12, padding: '10px 14px', minWidth: 110 }}>
               <div style={{ fontFamily: font.body, fontSize: 9, fontWeight: 600, letterSpacing: '0.7px', textTransform: 'uppercase', color: css.brand, marginBottom: 4 }}>Proposed</div>
               <input
                 ref={inputRef}
@@ -434,10 +434,10 @@ function AddConditionForm({
           disabled={!selected || !proposed.trim()}
           style={{
             height: 34, padding: '0 16px',
-            background: selected && proposed.trim() ? css.brand : '#e8e3e2',
+            background: selected && proposed.trim() ? css.brand : 'var(--border-light)',
             border: 'none', borderRadius: 6,
             fontFamily: font.body, fontSize: 12, fontWeight: 700,
-            color: selected && proposed.trim() ? '#fff' : css.textTertiary,
+            color: selected && proposed.trim() ? 'var(--text-inverse)' : css.textTertiary,
             cursor: selected && proposed.trim() ? 'pointer' : 'not-allowed',
             transition: 'background 0.15s ease, color 0.15s ease',
           }}
@@ -492,7 +492,7 @@ function ConditionBuilder({
 
       {/* Alert banner */}
       <div style={{
-        background: '#fbefeb', border: '1px solid #ebb39d', borderRadius: 10,
+        background: 'var(--danger-light)', border: '1px solid var(--danger-mid)', borderRadius: 10,
         padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'flex-start',
       }}>
         <div style={{ marginTop: 1, flexShrink: 0 }}><ShieldIcon /></div>
@@ -523,11 +523,11 @@ function ConditionBuilder({
               marginTop: 4, height: 36, padding: '0 20px',
               background: css.brand, border: 'none', borderRadius: 6,
               fontFamily: font.body, fontSize: 12, fontWeight: 700,
-              color: '#fff', cursor: 'pointer',
+              color: 'var(--text-inverse)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
-            <PlusIcon color="#fff" />
+            <PlusIcon color="var(--text-inverse)" />
             Add first condition
           </button>
         </div>
@@ -575,9 +575,9 @@ function ConditionBuilder({
             disabled={!canRun}
             style={{
               width: '100%', height: 48, border: 'none', borderRadius: 6,
-              background: canRun ? css.brand : '#e8e3e2',
+              background: canRun ? css.brand : 'var(--border-light)',
               fontFamily: font.body, fontSize: 12, fontWeight: 700,
-              color: canRun ? '#fff' : css.textTertiary,
+              color: canRun ? 'var(--text-inverse)' : css.textTertiary,
               cursor: canRun ? 'pointer' : 'not-allowed',
               transition: 'background 0.2s ease',
             }}
@@ -623,7 +623,7 @@ const loanRows: LoanRow[] = [
 ]
 
 const changePillStyles = {
-  positive: { bg: '#ebf7fd',             border: '#0ea5e9',              color: css.info    },
+  positive: { bg: 'var(--accent-light)',             border: 'var(--chart-azure)',              color: css.info    },
   negative: { bg: 'rgba(206,67,10,0.08)', border: 'rgba(206,67,10,0.3)', color: css.danger  },
   neutral:  { bg: css.surfacePage,        border: css.border,             color: css.textTertiary },
 }
@@ -726,7 +726,7 @@ function SimulationResults({
             <div style={{ height: 6, background: css.surfaceMuted, borderRadius: 99, overflow: 'hidden' }}>
               <div style={{
                 height: '100%', borderRadius: 99,
-                background: `linear-gradient(to right, #629460, #3f603e)`,
+                background: `linear-gradient(to right, var(--brand), var(--brand-dark))`,
                 width: `${progress}%`,
                 transition: 'width 0.18s ease',
               }} />
@@ -746,8 +746,8 @@ function SimulationResults({
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '5px 12px', borderRadius: 99,
-                    border: `1px solid ${done ? '#c8d9c7' : css.border}`,
-                    background: done ? '#f2f6f2' : css.surface,
+                    border: `1px solid ${done ? 'var(--brand-mid)' : css.border}`,
+                    background: done ? 'var(--brand-light)' : css.surface,
                     transition: 'all 0.3s ease',
                   }}
                 >
@@ -759,7 +759,7 @@ function SimulationResults({
                   ) : (
                     <div style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px solid ${css.border}` }} />
                   )}
-                  <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 600, color: done ? '#3f603e' : css.textTertiary }}>
+                  <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 600, color: done ? 'var(--brand-dark)' : css.textTertiary }}>
                     Condition {i + 1}
                   </span>
                 </div>
@@ -780,8 +780,8 @@ function SimulationResults({
                   Simulation results
                 </span>
                 <span style={{
-                  fontFamily: font.body, fontSize: 12, fontWeight: 700, color: '#3f603e',
-                  background: '#f2f6f2', border: `1px solid #c8d9c7`, borderRadius: 100, padding: '4px 12px',
+                  fontFamily: font.body, fontSize: 12, fontWeight: 700, color: 'var(--brand-dark)',
+                  background: 'var(--brand-light)', border: `1px solid var(--brand-mid)`, borderRadius: 100, padding: '4px 12px',
                 }}>
                   Scenario preview
                 </span>
@@ -910,7 +910,7 @@ function SimulationResults({
               <button style={{
                 height: 34, padding: '0 16px', background: css.brand, border: 'none',
                 borderRadius: 6, fontFamily: font.body, fontSize: 12, fontWeight: 700,
-                color: '#fff', cursor: 'pointer',
+                color: 'var(--text-inverse)', cursor: 'pointer',
               }}>Apply</button>
             </div>
           </div>

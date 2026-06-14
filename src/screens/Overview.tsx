@@ -150,7 +150,7 @@ function FavoritesDemoGroup() {
           width="28"
           height="28"
           viewBox="0 0 16 16"
-          style={{ display: 'block', fill: filled ? '#629460' : 'none', transition: 'fill 0.25s ease' }}
+          style={{ display: 'block', fill: filled ? 'var(--brand)' : 'none', transition: 'fill 0.25s ease' }}
           className={phase === 'selected' ? 'star-jump-shake' : undefined}
         >
           <path d={STAR_PATH} stroke="#629460" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -206,7 +206,7 @@ function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSea
         fontWeight: 700,
         fontSize: 20,
         letterSpacing: '-0.08px',
-        color: css.textSecondary,
+        color: css.textPrimary,
         margin: 0,
       }}>
         Overview

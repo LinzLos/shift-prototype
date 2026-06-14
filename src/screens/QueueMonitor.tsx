@@ -94,7 +94,7 @@ function HeaderBar({ queue, activeTab, onTabChange, customLabel, showDatePicker,
             fontWeight: 700,
             fontSize: 20,
             letterSpacing: '-0.08px',
-            color: css.textSecondary,
+            color: css.textPrimary,
           }}>
             Queue Monitor
           </span>
@@ -241,7 +241,7 @@ function CustomDatePicker({ onApply, onCancel }: { onApply: (from: string, to: s
             border: 'none', borderRadius: 6,
             padding: '5px 12px', cursor: canApply ? 'pointer' : 'default',
             fontFamily: font.body, fontSize: 11, fontWeight: 700,
-            color: canApply ? '#fff' : css.textTertiary,
+            color: canApply ? 'var(--text-inverse)' : css.textTertiary,
           }}
         >
           Apply
@@ -256,7 +256,7 @@ function CustomDatePicker({ onApply, onCancel }: { onApply: (from: string, to: s
 function HistoricalBanner({ tab }: { tab: string }) {
   return (
     <div style={{
-      background: '#ECEFF4',
+      background: 'var(--info-light)',
       border: '1px solid #AFBCD0',
       borderRadius: 8,
       padding: '9px 14px',
@@ -268,7 +268,7 @@ function HistoricalBanner({ tab }: { tab: string }) {
         <circle cx="7" cy="7" r="6" stroke="#1B4079" strokeWidth="1.2" />
         <path d="M7 4V7.5L9 9" stroke="#1B4079" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span style={{ fontFamily: font.body, fontSize: 12, fontWeight: 500, color: '#1B4079' }}>
+      <span style={{ fontFamily: font.body, fontSize: 12, fontWeight: 500, color: 'var(--info)' }}>
         Viewing {tab} data · Actions unavailable in historical view
       </span>
     </div>
@@ -286,7 +286,7 @@ type KpiCardProps = {
 }
 
 const badgeStyles: Record<BadgeVariant, { bg: string; color: string }> = {
-  warning: { bg: '#f3f0ef', color: css.warning },
+  warning: { bg: 'var(--warning-light)', color: css.warning },
   danger:  { bg: 'rgba(206,67,10,0.08)', color: css.danger },
   none:    { bg: 'transparent', color: 'transparent' },
 }
@@ -586,8 +586,8 @@ type AlertItem = {
 
 
 const alertVariantStyles = {
-  critical: { bg: '#fbefeb', border: '#ebb39d', titleColor: css.danger  },
-  warning:  { bg: '#f3f0ef', border: '#c3b7b1', titleColor: css.warning },
+  critical: { bg: 'var(--danger-light)', border: 'var(--danger-mid)', titleColor: css.danger  },
+  warning:  { bg: 'var(--warning-light)', border: 'var(--warning-mid)', titleColor: css.warning },
 }
 
 function AlertsCard({ onReassign, onRoster, transferred, isRealTime, periodAlerts, chartData }: { onReassign: () => void; onRoster: () => void; transferred: string[]; isRealTime: boolean; periodAlerts: AlertItem[]; chartData: ChartData }) {
@@ -622,7 +622,7 @@ function AlertsCard({ onReassign, onRoster, transferred, isRealTime, periodAlert
               className="fade-up"
               style={{
                 background: 'rgba(98,148,96,0.07)',
-                border: '1px solid #c8d9c7',
+                border: '1px solid var(--brand-mid)',
                 borderRadius: 10,
                 padding: '8px 12px',
                 display: 'flex',
@@ -639,17 +639,17 @@ function AlertsCard({ onReassign, onRoster, transferred, isRealTime, periodAlert
               <div style={{ flex: 1 }}>
                 <div style={{
                   fontFamily: font.body, fontSize: 13, fontWeight: 700,
-                  color: '#3f603e', lineHeight: 1.25, marginBottom: 2,
+                  color: 'var(--brand-dark)', lineHeight: 1.25, marginBottom: 2,
                 }}>
                   {a.title}
                 </div>
-                <div style={{ fontFamily: font.body, fontSize: 12, color: '#3f603e', lineHeight: 1.5 }}>
+                <div style={{ fontFamily: font.body, fontSize: 12, color: 'var(--brand-dark)', lineHeight: 1.5 }}>
                   Specialist load rebalanced — monitoring
                 </div>
                 <span style={{
                   display: 'inline-block', marginTop: 6,
                   fontFamily: font.body, fontSize: 10, fontWeight: 600,
-                  color: '#629460', letterSpacing: '0.3px',
+                  color: 'var(--brand)', letterSpacing: '0.3px',
                 }}>
                   Actioned · just now
                 </span>
@@ -833,8 +833,8 @@ function RankingsCard() {
                   {f.activeConditions.map((label) => (
                     <span key={label} style={{
                       fontFamily: font.body, fontSize: 9, fontWeight: 700,
-                      letterSpacing: '0.45px', color: '#3f603e', background: '#f2f6f2',
-                      border: '0.8px solid #c8d9c7', borderRadius: 6,
+                      letterSpacing: '0.45px', color: 'var(--brand-dark)', background: 'var(--brand-light)',
+                      border: '0.8px solid var(--brand-mid)', borderRadius: 6,
                       padding: '4px 8px', whiteSpace: 'nowrap',
                     }}>
                       {label}
@@ -882,15 +882,15 @@ function SpecialistRow({ name, loans, fill, isNew = false }: { name: string; loa
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{
             fontFamily: font.body, fontSize: 13, fontWeight: 600,
-            color: isNew ? '#3f603e' : css.textPrimary,
+            color: isNew ? 'var(--brand-dark)' : css.textPrimary,
           }}>
             {name}
           </span>
           {isNew && (
             <span style={{
               fontFamily: font.body, fontSize: 9, fontWeight: 700,
-              color: '#3f603e', background: '#f2f6f2',
-              border: '0.8px solid #c8d9c7', borderRadius: 6,
+              color: 'var(--brand-dark)', background: 'var(--brand-light)',
+              border: '0.8px solid var(--brand-mid)', borderRadius: 6,
               padding: '2px 6px', letterSpacing: '0.4px',
             }}>
               NEW
@@ -942,7 +942,7 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
                 background: css.brand, border: 'none', borderRadius: 6,
                 padding: '5px 10px', cursor: 'pointer',
                 fontFamily: font.body, fontSize: 11, fontWeight: 700,
-                color: '#ffffff', whiteSpace: 'nowrap',
+                color: 'var(--text-inverse)', whiteSpace: 'nowrap',
               }}
             >
               Reassign Staff
@@ -986,7 +986,7 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
       {/* ── Post-transfer banner — always visible after reassignment ── */}
       {transferred.length > 0 && (
         <div style={{
-          background: 'rgba(98,148,96,0.08)', border: '1px solid #c8d9c7',
+          background: 'rgba(98,148,96,0.08)', border: '1px solid var(--brand-mid)',
           borderRadius: 8, padding: '7px 10px',
           display: 'flex', alignItems: 'flex-start', gap: 7,
         }}>
@@ -994,7 +994,7 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
             <circle cx="7" cy="7" r="6" fill="#629460" />
             <path d="M4.5 7L6.5 9L9.5 5" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 500, color: '#3f603e', lineHeight: 1.5 }}>
+          <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 500, color: 'var(--brand-dark)', lineHeight: 1.5 }}>
             {transferred.length} specialist{transferred.length !== 1 ? 's' : ''} transferred in — {transferred.join(', ')}
           </span>
         </div>
@@ -1084,7 +1084,7 @@ function Toast({ message, onDismiss }: { message: string; onDismiss: () => void 
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 2000,
-      background: '#1E1918',
+      background: 'var(--text-primary)',
       borderRadius: 8,
       padding: '10px 16px',
       display: 'flex',
@@ -1097,7 +1097,7 @@ function Toast({ message, onDismiss }: { message: string; onDismiss: () => void 
         <circle cx="8" cy="8" r="6.5" fill="#629460" />
         <path d="M5 8L7 10L11 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: '#ffffff' }}>
+      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--text-inverse)' }}>
         {message}
       </span>
       <button

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import svgPaths from './svg-paths'
 
@@ -20,7 +21,53 @@ function MenuBrand() {
 
 function Divider() {
   return (
-    <div style={{ width: 64, height: 1, background: '#DDD7D5', flexShrink: 0 }} />
+    <div style={{ width: 64, height: 1, background: 'var(--border)', flexShrink: 0 }} />
+  )
+}
+
+function IconSun() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </svg>
+  )
+}
+function IconMoon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  )
+}
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
+  const toggle = () => {
+    const next = !dark
+    setDark(next)
+    if (next) document.documentElement.setAttribute('data-theme', 'dark')
+    else document.documentElement.removeAttribute('data-theme')
+    try { localStorage.setItem('tw-theme', next ? 'dark' : 'light') } catch { /* ignore */ }
+  }
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      title={dark ? 'Switch to light' : 'Switch to dark'}
+      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+      aria-pressed={dark}
+      style={{
+        width: 40, height: 40, borderRadius: 8, border: 0, background: 'transparent',
+        color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        transition: 'background 0.18s ease, color 0.18s ease',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-muted)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
+    >
+      {dark ? <IconSun /> : <IconMoon />}
+    </button>
   )
 }
 
@@ -38,8 +85,8 @@ export default function Sidenave() {
 
   return (
     <div style={{
-      background: '#F7F4F3',
-      border: '1px solid #DDD7D5',
+      background: 'var(--surface-subtle)',
+      border: '1px solid var(--border)',
       borderRadius: 10,
       display: 'flex',
       flexDirection: 'column',
@@ -60,7 +107,7 @@ export default function Sidenave() {
       }}>
         {navItems.map(({ path, label, viewBox, d }) => {
           const isActive = pathname === path
-          const strokeColor = isActive ? '#629460' : '#8A7E7D'
+          const strokeColor = isActive ? 'var(--brand)' : 'var(--text-tertiary)'
           return (
             <div key={path} style={{ position: 'relative', display: 'flex', justifyContent: 'center' }} className="nav-item-wrap">
               <Link
@@ -72,7 +119,7 @@ export default function Sidenave() {
                   width: 40,
                   height: 40,
                   borderRadius: 8,
-                  background: isActive ? '#FFFFFF' : 'transparent',
+                  background: isActive ? 'var(--surface)' : 'transparent',
                   boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                   textDecoration: 'none',
                   flexShrink: 0,
@@ -80,7 +127,7 @@ export default function Sidenave() {
                 }}
               >
                 <svg width="20" height="20" fill="none" viewBox={viewBox}>
-                  <path d={d} stroke={strokeColor} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                  <path d={d} style={{ stroke: strokeColor }} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                 </svg>
               </Link>
               <div className="nav-tooltip">
@@ -89,6 +136,11 @@ export default function Sidenave() {
             </div>
           )
         })}
+      </div>
+
+      <Divider />
+      <div style={{ padding: '8px 8px 12px', display: 'flex', justifyContent: 'center', width: '100%', boxSizing: 'border-box' }}>
+        <ThemeToggle />
       </div>
     </div>
   )

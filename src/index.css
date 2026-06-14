@@ -63,6 +63,53 @@
   --radius-full:    9999px;
 }
 
+/* ─── Dark theme ──────────────────────────────────────────────────────────────
+   Ported from Tiny Wire v1.4. Toggle by setting data-theme="dark" on <html>.
+   Same token names → components reading var(--…) inherit dark values. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface:        #1F1A18;
+  --surface-subtle: #19130F;
+  --surface-page:   #16110F;
+  --surface-muted:  #2A211E;
+
+  --border:         #3A312D;
+  --border-light:   #2E2722;
+  --border-dashed:  #6B5C57;
+
+  --text-primary:   #F4EEEC;
+  --text-secondary: #C5B6B2;
+  --text-tertiary:  #A0928E;
+  --text-inverse:   #1E1918;
+
+  --brand:          #8FB68D;
+  --brand-light:    #1F2A1F;
+  --brand-mid:      #3F603E;
+  --brand-dark:     #C8D9C7;
+
+  --danger:         #E66B36;
+  --danger-light:   #2E1C13;
+  --danger-mid:     #6E3217;
+
+  --warning:        #C9A063;
+  --warning-light:  #251D19;
+  --warning-mid:    #4A3A24;
+
+  --info:           #7E96D8;
+  --info-light:     #1A2342;
+  --info-mid:       #2E3F6B;
+
+  --accent:         #8AA0DE;
+  --accent-light:   #1A2342;
+
+  --data-inflow:    #E66B36;
+  --data-outflow:   #8FB68D;
+  --data-target:    #847671;
+  --chart-blue:     #7E96D8;
+  --chart-azure:    #3DBEF5;
+}
+
 .scroll-hidden { scrollbar-width: none; -ms-overflow-style: none; }
 .scroll-hidden::-webkit-scrollbar { display: none; }
 
