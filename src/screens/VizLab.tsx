@@ -3,50 +3,50 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-// Robinhood: organic spring — soft, slightly bouncy (consumer fintech feel)
-const RH_SPRING   = { type: 'spring' as const, stiffness: 180, damping: 22, mass: 0.9 }
-// Bloomberg: crisp tween — precise, mechanical (terminal feel)
-const BBG_SPRING  = { type: 'tween'  as const, duration: 0.36, ease: [0.4, 0, 0.2, 1] as const }
-// Stripe: smooth ease-out — clean, confident, professional
-const STR_SPRING  = { type: 'tween'  as const, duration: 0.4,  ease: [0.25, 0.46, 0.45, 0.94] as const }
+// Finch: organic spring — soft, slightly bouncy (consumer fintech feel)
+const FINCH_SPRING   = { type: 'spring' as const, stiffness: 180, damping: 22, mass: 0.9 }
+// Aster: crisp tween — precise, mechanical (terminal feel)
+const ASTER_SPRING  = { type: 'tween'  as const, duration: 0.36, ease: [0.4, 0, 0.2, 1] as const }
+// Ledger: smooth ease-out — clean, confident, professional
+const LEDGER_SPRING  = { type: 'tween'  as const, duration: 0.4,  ease: [0.25, 0.46, 0.45, 0.94] as const }
 // Grid blur/scale uses a unified tween so it doesn't fight either card spring
 const GRID_SPRING = { type: 'tween'  as const, duration: 0.4,  ease: [0.4, 0, 0.2, 1] as const }
 
-// Robinhood palettes — muted brightened to #888 for AA contrast on dark bg
-const RH_DARK = {
+// Finch palettes — muted brightened to #888 for AA contrast on dark bg
+const FINCH_DARK = {
   bg:     '#0D0D0D', border: '#242424', text: '#FFFFFF',
   muted:  '#888888', dim:    '#333333',
   green:  '#00C805', inflow: 'rgba(255,255,255,0.42)',
   gradA:  'rgba(0,200,5,0.22)', gradB: 'rgba(0,200,5,0)',
 }
-const RH_LIGHT = {
+const FINCH_LIGHT = {
   bg:     '#FFFFFF',  border: '#EBEBEB', text: '#0D0D0D',
   muted:  '#898989',  dim:    '#E8E8E8',
   green:  '#019904',  inflow: 'rgba(0,0,0,0.22)',
   gradA:  'rgba(1,153,4,0.10)', gradB: 'rgba(1,153,4,0)',
 }
 
-// Bloomberg palettes — muted at #9E9E9E (5.9:1 on black) and #5C5344 (5.1:1 on cream) for AA
-const BBG_DARK = {
+// Aster palettes — muted at #9E9E9E (5.9:1 on black) and #5C5344 (5.1:1 on cream) for AA
+const ASTER_DARK = {
   bg:     '#000000', border: '#1E1E1E', text:   '#FFFFFF',
   muted:  '#9E9E9E', dim:    '#2A2A2A',
   orange: '#F0931C', amber:  '#FFB83F', green: '#4CAF50', red: '#EF5350',
 }
-const BBG_LIGHT = {
+const ASTER_LIGHT = {
   bg:     '#FDFBF5', border: '#DDD5C3', text:   '#1C1A12',
   muted:  '#5C5344', dim:    '#EAE5D8',
   orange: '#C86400', amber:  '#956000', green: '#276A2C', red: '#C12020',
 }
 
-// Stripe palettes — dark navy to clean white
-const STR_DARK = {
+// Ledger palettes — dark navy to clean white
+const LEDGER_DARK = {
   bg:     '#0A2540', border: '#1A3A54', text:   '#FFFFFF',
   muted:  '#8898AA', dim:    '#1A3550',
   purple: '#7B73FF', teal:   '#36BFFA',
   gradA:  'rgba(123,115,255,0.3)', gradB: 'rgba(123,115,255,0)',
   badge:  'rgba(123,115,255,0.18)',
 }
-const STR_LIGHT = {
+const LEDGER_LIGHT = {
   bg:     '#FFFFFF', border: '#E6EBF1', text:   '#0A2540',
   muted:  '#697386', dim:    '#F7FAFC',
   purple: '#635BFF', teal:   '#0891D1',
@@ -54,9 +54,9 @@ const STR_LIGHT = {
   badge:  'rgba(99,91,255,0.1)',
 }
 
-type RHP  = typeof RH_DARK
-type BBGP = typeof BBG_DARK
-type STRP = typeof STR_DARK
+type FinchP  = typeof FINCH_DARK
+type AsterP = typeof ASTER_DARK
+type LedgerP = typeof LEDGER_DARK
 
 const font = {
   heading: "'Bricolage Grotesque', sans-serif",
@@ -108,7 +108,7 @@ function angularLine(pts: { x: number; y: number }[]) {
   return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
 }
 
-function buildRHChart(
+function buildFinchChart(
   data: { outflow: number[]; inflow: number[] },
   W: number, H: number, pL: number, pR: number, pT: number, pB: number
 ) {
@@ -150,13 +150,13 @@ function ModeToggle({ mode, onToggle, color }: { mode: 'dark' | 'light'; onToggl
   )
 }
 
-// ─── Robinhood — mini chart ───────────────────────────────────────────────────
+// ─── Finch — mini chart ───────────────────────────────────────────────────
 
-function MiniRHChart({ p }: { p: RHP }) {
+function MiniFinchChart({ p }: { p: FinchP }) {
   const W = 300, H = 88
   const data = periodData['Today']
-  const { outLine, inLine, outArea } = buildRHChart(data, W, H, 0, 0, 4, 4)
-  const gradId = `rh-mini-${p.bg.replace('#', '')}`
+  const { outLine, inLine, outArea } = buildFinchChart(data, W, H, 0, 0, 4, 4)
+  const gradId = `finch-mini-${p.bg.replace('#', '')}`
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
       <defs>
@@ -173,17 +173,17 @@ function MiniRHChart({ p }: { p: RHP }) {
   )
 }
 
-// ─── Robinhood — expanded chart ───────────────────────────────────────────────
+// ─── Finch — expanded chart ───────────────────────────────────────────────
 // Hover: smooth fade (0.2s ease-out), scrubber snaps to nearest point
 // Node style: no permanent nodes — tiny filled dot appears only on hover
 
-function ExpandedRHChart({ period, p }: { period: Period; p: RHP }) {
+function ExpandedFinchChart({ period, p }: { period: Period; p: FinchP }) {
   // W = 1100 keeps fontSize ~1:1 with typical demo container (~1200px content)
   const W = 1100, H = 176
   const padL = 10, padR = 28, padT = 14, padB = 6
   const data = periodData[period]
-  const { toX, toY, outLine, inLine, outArea } = buildRHChart(data, W, H, padL, padR, padT, padB)
-  const gradId = `rh-exp-${p.bg.replace('#', '')}`
+  const { toX, toY, outLine, inLine, outArea } = buildFinchChart(data, W, H, padL, padR, padT, padB)
+  const gradId = `finch-exp-${p.bg.replace('#', '')}`
 
   const [hoverIdx,  setHoverIdx]  = useState<number | null>(null)
   const [hoverX,    setHoverX]    = useState(0)
@@ -229,10 +229,10 @@ function ExpandedRHChart({ period, p }: { period: Period; p: RHP }) {
         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
         transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }} />
 
-      {/* Hover — fade in/out 0.2s ease-out (Robinhood: gentle) */}
+      {/* Hover — fade in/out 0.2s ease-out (Finch: gentle) */}
       <AnimatePresence>
         {hoverIdx !== null && (
-          <motion.g key="rh-hover"
+          <motion.g key="finch-hover"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
@@ -240,7 +240,7 @@ function ExpandedRHChart({ period, p }: { period: Period; p: RHP }) {
             <line x1={hoverX} y1={padT} x2={hoverX} y2={padT + (H - padT - padB)}
               stroke={p.muted} strokeWidth="0.8" opacity={0.4} />
 
-            {/* Outflow dot — small filled (Robinhood: no permanent nodes, dot on hover only) */}
+            {/* Outflow dot — small filled (Finch: no permanent nodes, dot on hover only) */}
             <circle cx={hoverX} cy={hoverOutY} r="3" fill={p.green} />
             {/* Inflow dot — open, smaller */}
             <circle cx={hoverX} cy={hoverInY} r="2" fill={p.bg} stroke={p.inflow} strokeWidth="1" />
@@ -288,9 +288,9 @@ function ExpandedRHChart({ period, p }: { period: Period; p: RHP }) {
   )
 }
 
-// ─── Bloomberg — mini chart ───────────────────────────────────────────────────
+// ─── Aster — mini chart ───────────────────────────────────────────────────
 
-function MiniBBGChart({ p }: { p: BBGP }) {
+function MiniAsterChart({ p }: { p: AsterP }) {
   const W = 300, H = 80
   const { outflow, inflow } = periodData['Today']
   const n = outflow.length
@@ -311,7 +311,7 @@ function MiniBBGChart({ p }: { p: BBGP }) {
       {/* Angular inflow line — thinner */}
       <path d={angularLine(inPts)} fill="none" strokeWidth="1" strokeDasharray="3 2"
         style={{ stroke: p.amber, transition: 'stroke 0.3s ease' }} />
-      {/* Diamond nodes — Bloomberg signature */}
+      {/* Diamond nodes — Aster signature */}
       {inflow.map((v, i) => {
         const cx = toBarCX(i), cy = toY(v), s = 2
         return (
@@ -325,11 +325,11 @@ function MiniBBGChart({ p }: { p: BBGP }) {
   )
 }
 
-// ─── Bloomberg — expanded chart ───────────────────────────────────────────────
+// ─── Aster — expanded chart ───────────────────────────────────────────────
 // Hover: fast snap (0.08s) — terminal responsiveness
-// Node style: diamond at each inflow point (Bloomberg signature)
+// Node style: diamond at each inflow point (Aster signature)
 
-function ExpandedBBGChart({ period, p }: { period: Period; p: BBGP }) {
+function ExpandedAsterChart({ period, p }: { period: Period; p: AsterP }) {
   const W = 1100, H = 186
   const padL = 44, padR = 28, padT = 14, padB = 6
   const cW = W - padL - padR, cH = H - padT - padB
@@ -394,7 +394,7 @@ function ExpandedBBGChart({ period, p }: { period: Period; p: BBGP }) {
         initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }}
         transition={{ duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }} />
 
-      {/* Diamond nodes on inflow — Bloomberg signature */}
+      {/* Diamond nodes on inflow — Aster signature */}
       {data.inflow.map((v, i) => {
         const cx = toBarCX(i), cy = toY(v), s = 3.5
         return (
@@ -411,10 +411,10 @@ function ExpandedBBGChart({ period, p }: { period: Period; p: BBGP }) {
         )
       })}
 
-      {/* Hover — fast snap 0.08s (Bloomberg: terminal responsiveness) */}
+      {/* Hover — fast snap 0.08s (Aster: terminal responsiveness) */}
       <AnimatePresence>
         {hoverIdx !== null && (
-          <motion.g key="bbg-hover"
+          <motion.g key="aster-hover"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.08 }}
           >
@@ -481,13 +481,13 @@ function ExpandedBBGChart({ period, p }: { period: Period; p: BBGP }) {
   )
 }
 
-// ─── Stripe — mini chart ─────────────────────────────────────────────────────
+// ─── Ledger — mini chart ─────────────────────────────────────────────────────
 
-function MiniStripeChart({ p }: { p: STRP }) {
+function MiniLedgerChart({ p }: { p: LedgerP }) {
   const W = 300, H = 88
   const data = periodData['Today']
-  const { outLine, inLine, outArea } = buildRHChart(data, W, H, 0, 0, 4, 4)
-  const gradId = `str-mini-${p.bg.replace('#', '')}`
+  const { outLine, inLine, outArea } = buildFinchChart(data, W, H, 0, 0, 4, 4)
+  const gradId = `ledger-mini-${p.bg.replace('#', '')}`
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
       <defs>
@@ -503,14 +503,14 @@ function MiniStripeChart({ p }: { p: STRP }) {
   )
 }
 
-// ─── Stripe — expanded chart ──────────────────────────────────────────────────
+// ─── Ledger — expanded chart ──────────────────────────────────────────────────
 
-function ExpandedStripeChart({ period, p }: { period: Period; p: STRP }) {
+function ExpandedLedgerChart({ period, p }: { period: Period; p: LedgerP }) {
   const W = 1100, H = 176
   const padL = 44, padR = 28, padT = 14, padB = 6
   const data = periodData[period]
-  const { toX, toY, outLine, inLine, outArea } = buildRHChart(data, W, H, padL, padR, padT, padB)
-  const gradId = `str-exp-${p.bg.replace('#', '')}`
+  const { toX, toY, outLine, inLine, outArea } = buildFinchChart(data, W, H, padL, padR, padT, padB)
+  const gradId = `ledger-exp-${p.bg.replace('#', '')}`
 
   const all  = [...data.outflow, ...data.inflow]
   const minV = Math.min(...all) - 6
@@ -572,7 +572,7 @@ function ExpandedStripeChart({ period, p }: { period: Period; p: STRP }) {
       {/* Hover */}
       <AnimatePresence>
         {hoverIdx !== null && (
-          <motion.g key="str-hover"
+          <motion.g key="ledger-hover"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
@@ -641,25 +641,25 @@ function ExpandedStripeChart({ period, p }: { period: Period; p: STRP }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function VizLab() {
-  const [selected,     setSelected]     = useState<'robinhood' | 'bloomberg' | 'stripe' | null>(null)
-  const [rhPeriod,     setRhPeriod]     = useState<Period>('Today')
-  const [bbgPeriod,    setBbgPeriod]    = useState<Period>('Today')
-  const [strPeriod,    setStrPeriod]    = useState<Period>('Today')
-  const [rhMode,       setRhMode]       = useState<'dark' | 'light'>('dark')
-  const [bbgMode,      setBbgMode]      = useState<'dark' | 'light'>('dark')
-  const [strMode,      setStrMode]      = useState<'dark' | 'light'>('dark')
-  const [rhCardHover,  setRhCardHover]  = useState(false)
-  const [bbgCardHover, setBbgCardHover] = useState(false)
-  const [strCardHover, setStrCardHover] = useState(false)
+  const [selected,     setSelected]     = useState<'finch' | 'aster' | 'ledger' | null>(null)
+  const [finchPeriod,     setFinchPeriod]     = useState<Period>('Today')
+  const [asterPeriod,    setAsterPeriod]    = useState<Period>('Today')
+  const [ledgerPeriod,    setLedgerPeriod]    = useState<Period>('Today')
+  const [finchMode,       setFinchMode]       = useState<'dark' | 'light'>('dark')
+  const [asterMode,      setAsterMode]      = useState<'dark' | 'light'>('dark')
+  const [ledgerMode,      setLedgerMode]      = useState<'dark' | 'light'>('dark')
+  const [finchCardHover,  setFinchCardHover]  = useState(false)
+  const [asterCardHover, setAsterCardHover] = useState(false)
+  const [ledgerCardHover, setLedgerCardHover] = useState(false)
 
   // Expanded views use the user-controlled toggle
-  const rp = rhMode  === 'dark' ? RH_DARK  : RH_LIGHT
-  const bp = bbgMode === 'dark' ? BBG_DARK : BBG_LIGHT
-  const sp = strMode === 'dark' ? STR_DARK : STR_LIGHT
+  const finchP = finchMode  === 'dark' ? FINCH_DARK  : FINCH_LIGHT
+  const asterP = asterMode === 'dark' ? ASTER_DARK : ASTER_LIGHT
+  const ledgerP = ledgerMode === 'dark' ? LEDGER_DARK : LEDGER_LIGHT
   // Preview cards start dark, transition to light on hover
-  const rhCardP  = rhCardHover  ? RH_LIGHT  : RH_DARK
-  const bbgCardP = bbgCardHover ? BBG_LIGHT : BBG_DARK
-  const strCardP = strCardHover ? STR_LIGHT : STR_DARK
+  const finchCardP  = finchCardHover  ? FINCH_LIGHT  : FINCH_DARK
+  const asterCardP = asterCardHover ? ASTER_LIGHT : ASTER_DARK
+  const ledgerCardP = ledgerCardHover ? LEDGER_LIGHT : LEDGER_DARK
   const isExpanded = selected !== null
 
   function delta(data: { outflow: number[] }) {
@@ -695,102 +695,102 @@ export default function VizLab() {
         transition={GRID_SPRING}
         style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, transformOrigin: 'top center' }}
       >
-        {/* ── Robinhood card ── */}
-        <motion.div layoutId="rh-card" transition={RH_SPRING}
-          onClick={() => { if (!isExpanded) { setRhCardHover(false); setSelected('robinhood') } }}
-          onMouseEnter={() => !isExpanded && setRhCardHover(true)}
-          onMouseLeave={() => setRhCardHover(false)}
+        {/* ── Finch card ── */}
+        <motion.div layoutId="finch-card" transition={FINCH_SPRING}
+          onClick={() => { if (!isExpanded) { setFinchCardHover(false); setSelected('finch') } }}
+          onMouseEnter={() => !isExpanded && setFinchCardHover(true)}
+          onMouseLeave={() => setFinchCardHover(false)}
           whileHover={!isExpanded ? { scale: 1.025, transition: { type: 'spring', stiffness: 260, damping: 20 } } : {}}
           style={{
-            background: rhCardP.bg, border: `1px solid ${rhCardP.border}`, borderRadius: 16, overflow: 'hidden',
+            background: finchCardP.bg, border: `1px solid ${finchCardP.border}`, borderRadius: 16, overflow: 'hidden',
             cursor: isExpanded ? 'default' : 'pointer',
-            visibility: selected === 'robinhood' ? 'hidden' : 'visible',
+            visibility: selected === 'finch' ? 'hidden' : 'visible',
             transition: 'background 0.35s ease, border-color 0.35s ease',
           }}
         >
           <div style={{ padding: '20px 20px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontFamily: font.body, fontSize: 10, fontWeight: 700, color: rhCardP.green, letterSpacing: '0.1em', textTransform: 'uppercase', transition: 'color 0.35s ease' }}>Robinhood</span>
-              <span style={{ fontFamily: font.body, fontSize: 10, color: rhCardP.muted, transition: 'color 0.35s ease' }}>Inflow vs Outflow</span>
+              <span style={{ fontFamily: font.body, fontSize: 10, fontWeight: 700, color: finchCardP.green, letterSpacing: '0.1em', textTransform: 'uppercase', transition: 'color 0.35s ease' }}>Finch</span>
+              <span style={{ fontFamily: font.body, fontSize: 10, color: finchCardP.muted, transition: 'color 0.35s ease' }}>Inflow vs Outflow</span>
             </div>
-            <div style={{ fontFamily: font.heading, fontSize: 42, fontWeight: 700, color: rhCardP.text, lineHeight: 1, transition: 'color 0.35s ease' }}>140</div>
+            <div style={{ fontFamily: font.heading, fontSize: 42, fontWeight: 700, color: finchCardP.text, lineHeight: 1, transition: 'color 0.35s ease' }}>140</div>
             <div style={{ fontFamily: font.body, fontSize: 12, marginTop: 5 }}>
-              <span style={{ color: rhCardP.green, fontWeight: 600, transition: 'color 0.35s ease' }}>+27.3%</span>
-              <span style={{ color: rhCardP.muted, marginLeft: 6, transition: 'color 0.35s ease' }}>vs midnight</span>
+              <span style={{ color: finchCardP.green, fontWeight: 600, transition: 'color 0.35s ease' }}>+27.3%</span>
+              <span style={{ color: finchCardP.muted, marginLeft: 6, transition: 'color 0.35s ease' }}>vs midnight</span>
             </div>
           </div>
-          <div style={{ marginTop: 14 }}><MiniRHChart p={rhCardP} /></div>
+          <div style={{ marginTop: 14 }}><MiniFinchChart p={finchCardP} /></div>
         </motion.div>
 
-        {/* ── Bloomberg card ── */}
-        <motion.div layoutId="bbg-card" transition={BBG_SPRING}
-          onClick={() => { if (!isExpanded) { setBbgCardHover(false); setSelected('bloomberg') } }}
-          onMouseEnter={() => !isExpanded && setBbgCardHover(true)}
-          onMouseLeave={() => setBbgCardHover(false)}
+        {/* ── Aster card ── */}
+        <motion.div layoutId="aster-card" transition={ASTER_SPRING}
+          onClick={() => { if (!isExpanded) { setAsterCardHover(false); setSelected('aster') } }}
+          onMouseEnter={() => !isExpanded && setAsterCardHover(true)}
+          onMouseLeave={() => setAsterCardHover(false)}
           whileHover={!isExpanded ? { scale: 1.015, transition: { type: 'tween', duration: 0.14, ease: 'easeOut' } } : {}}
           style={{
-            background: bbgCardP.bg, border: `1px solid ${bbgCardP.border}`, borderRadius: 16, overflow: 'hidden',
+            background: asterCardP.bg, border: `1px solid ${asterCardP.border}`, borderRadius: 16, overflow: 'hidden',
             cursor: isExpanded ? 'default' : 'pointer',
-            visibility: selected === 'bloomberg' ? 'hidden' : 'visible',
+            visibility: selected === 'aster' ? 'hidden' : 'visible',
             transition: 'background 0.3s ease, border-color 0.3s ease',
           }}
         >
           <div style={{ padding: '20px 20px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontFamily: font.mono, fontSize: 9.5, fontWeight: 700, color: bbgCardP.orange, letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'color 0.3s ease' }}>Bloomberg</span>
-              <span style={{ fontFamily: font.mono, fontSize: 9, fontWeight: 700, color: bbgCardP.muted, transition: 'color 0.3s ease' }}>INFLOW/OUTFLOW</span>
+              <span style={{ fontFamily: font.mono, fontSize: 9.5, fontWeight: 700, color: asterCardP.orange, letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'color 0.3s ease' }}>Aster</span>
+              <span style={{ fontFamily: font.mono, fontSize: 9, fontWeight: 700, color: asterCardP.muted, transition: 'color 0.3s ease' }}>INFLOW/OUTFLOW</span>
             </div>
-            <div style={{ fontFamily: font.mono, fontSize: 40, fontWeight: 700, color: bbgCardP.text, lineHeight: 1, letterSpacing: '-1px', transition: 'color 0.3s ease' }}>140</div>
-            <div style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, marginTop: 6, color: bbgCardP.green, transition: 'color 0.3s ease' }}>
-              ▲ +27.3% <span style={{ color: bbgCardP.muted, transition: 'color 0.3s ease' }}>VS MIDNIGHT</span>
+            <div style={{ fontFamily: font.mono, fontSize: 40, fontWeight: 700, color: asterCardP.text, lineHeight: 1, letterSpacing: '-1px', transition: 'color 0.3s ease' }}>140</div>
+            <div style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, marginTop: 6, color: asterCardP.green, transition: 'color 0.3s ease' }}>
+              ▲ +27.3% <span style={{ color: asterCardP.muted, transition: 'color 0.3s ease' }}>VS MIDNIGHT</span>
             </div>
           </div>
-          <div style={{ marginTop: 16 }}><MiniBBGChart p={bbgCardP} /></div>
+          <div style={{ marginTop: 16 }}><MiniAsterChart p={asterCardP} /></div>
         </motion.div>
 
-        {/* ── Stripe card ── */}
-        <motion.div layoutId="str-card" transition={STR_SPRING}
-          onClick={() => { if (!isExpanded) { setStrCardHover(false); setSelected('stripe') } }}
-          onMouseEnter={() => !isExpanded && setStrCardHover(true)}
-          onMouseLeave={() => setStrCardHover(false)}
+        {/* ── Ledger card ── */}
+        <motion.div layoutId="ledger-card" transition={LEDGER_SPRING}
+          onClick={() => { if (!isExpanded) { setLedgerCardHover(false); setSelected('ledger') } }}
+          onMouseEnter={() => !isExpanded && setLedgerCardHover(true)}
+          onMouseLeave={() => setLedgerCardHover(false)}
           whileHover={!isExpanded ? { scale: 1.02, transition: { type: 'tween', duration: 0.2, ease: 'easeOut' } } : {}}
           style={{
-            background: strCardP.bg, border: `1px solid ${strCardP.border}`, borderRadius: 16, overflow: 'hidden',
+            background: ledgerCardP.bg, border: `1px solid ${ledgerCardP.border}`, borderRadius: 16, overflow: 'hidden',
             cursor: isExpanded ? 'default' : 'pointer',
-            visibility: selected === 'stripe' ? 'hidden' : 'visible',
+            visibility: selected === 'ledger' ? 'hidden' : 'visible',
             transition: 'background 0.35s ease, border-color 0.35s ease',
           }}
         >
           <div style={{ padding: '20px 20px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontFamily: font.body, fontSize: 10, fontWeight: 700, color: strCardP.purple, letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'color 0.35s ease' }}>Stripe</span>
-              <span style={{ fontFamily: font.body, fontSize: 10, color: strCardP.muted, transition: 'color 0.35s ease' }}>Inflow vs Outflow</span>
+              <span style={{ fontFamily: font.body, fontSize: 10, fontWeight: 700, color: ledgerCardP.purple, letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'color 0.35s ease' }}>Ledger</span>
+              <span style={{ fontFamily: font.body, fontSize: 10, color: ledgerCardP.muted, transition: 'color 0.35s ease' }}>Inflow vs Outflow</span>
             </div>
-            <div style={{ fontFamily: font.body, fontSize: 42, fontWeight: 600, color: strCardP.text, lineHeight: 1, letterSpacing: '-0.5px', transition: 'color 0.35s ease' }}>140</div>
+            <div style={{ fontFamily: font.body, fontSize: 42, fontWeight: 600, color: ledgerCardP.text, lineHeight: 1, letterSpacing: '-0.5px', transition: 'color 0.35s ease' }}>140</div>
             <div style={{ fontFamily: font.body, fontSize: 12, marginTop: 6, display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', background: strCardP.badge, color: strCardP.purple, fontWeight: 600, fontSize: 11, borderRadius: 4, padding: '2px 7px', transition: 'background 0.35s ease, color 0.35s ease' }}>+27.3%</span>
-              <span style={{ color: strCardP.muted, transition: 'color 0.35s ease' }}>vs midnight</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', background: ledgerCardP.badge, color: ledgerCardP.purple, fontWeight: 600, fontSize: 11, borderRadius: 4, padding: '2px 7px', transition: 'background 0.35s ease, color 0.35s ease' }}>+27.3%</span>
+              <span style={{ color: ledgerCardP.muted, transition: 'color 0.35s ease' }}>vs midnight</span>
             </div>
           </div>
-          <div style={{ marginTop: 14 }}><MiniStripeChart p={strCardP} /></div>
+          <div style={{ marginTop: 14 }}><MiniLedgerChart p={ledgerCardP} /></div>
         </motion.div>
       </motion.div>
 
       {/* ═══ Expanded overlays ═══════════════════════════════════════════════ */}
       <AnimatePresence>
 
-        {/* ── Robinhood expanded ── */}
-        {selected === 'robinhood' && (
+        {/* ── Finch expanded ── */}
+        {selected === 'finch' && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.22 }} onClick={() => setSelected(null)}
               style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 40 }}
             />
-            <motion.div layoutId="rh-card" transition={RH_SPRING}
+            <motion.div layoutId="finch-card" transition={FINCH_SPRING}
               style={{
                 position: 'fixed', top: '8vh', left: '14vw', right: '14vw',
                 maxHeight: '84vh', overflowY: 'auto',
-                background: rp.bg, border: `1px solid ${rp.border}`,
+                background: finchP.bg, border: `1px solid ${finchP.border}`,
                 borderRadius: 20, zIndex: 50, display: 'flex', flexDirection: 'column',
               }}
             >
@@ -800,15 +800,15 @@ export default function VizLab() {
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
                   <div>
-                    <div style={{ fontFamily: font.body, fontSize: 12, fontWeight: 700, color: rp.green, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Robinhood Style</div>
-                    <div style={{ fontFamily: font.body, fontSize: 14, color: rp.muted }}>Loan Throughput · Outflow vs Inflow Demand</div>
+                    <div style={{ fontFamily: font.body, fontSize: 12, fontWeight: 700, color: finchP.green, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Finch Style</div>
+                    <div style={{ fontFamily: font.body, fontSize: 14, color: finchP.muted }}>Loan Throughput · Outflow vs Inflow Demand</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: rp.bg === '#FFFFFF' ? '#F0F0F0' : 'rgba(255,255,255,0.07)', border: `1px solid ${rp.dim}`, borderRadius: 8, padding: '4px 10px' }}>
-                      <ModeToggle mode={rhMode} color={rp.muted} onToggle={(e) => { e.stopPropagation(); setRhMode(m => m === 'dark' ? 'light' : 'dark') }} />
-                      <span style={{ fontFamily: font.body, fontSize: 13, color: rp.muted }}>{rhMode === 'dark' ? 'Dark' : 'Light'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: finchP.bg === '#FFFFFF' ? '#F0F0F0' : 'rgba(255,255,255,0.07)', border: `1px solid ${finchP.dim}`, borderRadius: 8, padding: '4px 10px' }}>
+                      <ModeToggle mode={finchMode} color={finchP.muted} onToggle={(e) => { e.stopPropagation(); setFinchMode(m => m === 'dark' ? 'light' : 'dark') }} />
+                      <span style={{ fontFamily: font.body, fontSize: 13, color: finchP.muted }}>{finchMode === 'dark' ? 'Dark' : 'Light'}</span>
                     </div>
-                    <button onClick={() => setSelected(null)} style={{ background: rp.bg === '#FFFFFF' ? '#F0F0F0' : 'rgba(255,255,255,0.07)', border: `1px solid ${rp.dim}`, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: rp.muted, flexShrink: 0 }}>
+                    <button onClick={() => setSelected(null)} style={{ background: finchP.bg === '#FFFFFF' ? '#F0F0F0' : 'rgba(255,255,255,0.07)', border: `1px solid ${finchP.dim}`, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: finchP.muted, flexShrink: 0 }}>
                       <svg width="12" height="12" fill="none" viewBox="0 0 12 12"><path d="M1.5 1.5L10.5 10.5M10.5 1.5L1.5 10.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
                     </button>
                   </div>
@@ -816,28 +816,28 @@ export default function VizLab() {
 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                    <span style={{ fontFamily: font.heading, fontSize: 48, fontWeight: 700, color: rp.text, lineHeight: 1 }}>{periodData[rhPeriod].outflow.at(-1)}</span>
-                    <span style={{ fontFamily: font.body, fontSize: 15, color: rp.muted }}>loans / hr</span>
+                    <span style={{ fontFamily: font.heading, fontSize: 48, fontWeight: 700, color: finchP.text, lineHeight: 1 }}>{periodData[finchPeriod].outflow.at(-1)}</span>
+                    <span style={{ fontFamily: font.body, fontSize: 15, color: finchP.muted }}>loans / hr</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 10 }}>
-                    {(() => { const d = delta(periodData[rhPeriod]); return <span style={{ fontFamily: font.body, fontSize: 14, color: d.positive ? rp.green : '#FF5000', fontWeight: 600 }}>{d.str}</span> })()}
-                    <span style={{ fontFamily: font.body, fontSize: 13, color: rp.muted }}>vs period start</span>
+                    {(() => { const d = delta(periodData[finchPeriod]); return <span style={{ fontFamily: font.body, fontSize: 14, color: d.positive ? finchP.green : '#FF5000', fontWeight: 600 }}>{d.str}</span> })()}
+                    <span style={{ fontFamily: font.body, fontSize: 13, color: finchP.muted }}>vs period start</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 4 }}>
-                      {[{ color: rp.green, dash: false, label: 'Outflow' }, { color: rp.inflow, dash: true, label: 'Inflow' }].map(({ color, dash, label }) => (
+                      {[{ color: finchP.green, dash: false, label: 'Outflow' }, { color: finchP.inflow, dash: true, label: 'Inflow' }].map(({ color, dash, label }) => (
                         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke={color} strokeWidth={dash ? 1 : 1.5} strokeDasharray={dash ? '5 3' : undefined} /></svg>
-                          <span style={{ fontFamily: font.body, fontSize: 13, color: rp.muted }}>{label}</span>
+                          <span style={{ fontFamily: font.body, fontSize: 13, color: finchP.muted }}>{label}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div style={{}}><ExpandedRHChart period={rhPeriod} p={rp} /></div>
+                <div style={{}}><ExpandedFinchChart period={finchPeriod} p={finchP} /></div>
 
                 <div style={{ display: 'flex', gap: 2, marginTop: 16 }}>
                   {(['Today', '1D', '1W', '1M'] as Period[]).map(p => (
-                    <button key={p} onClick={(e) => { e.stopPropagation(); setRhPeriod(p) }} style={{ fontFamily: font.body, fontSize: 13, fontWeight: 600, background: rhPeriod === p ? (rp.bg === '#FFFFFF' ? '#EBEBEB' : 'rgba(255,255,255,0.1)') : 'transparent', border: 'none', borderRadius: 7, color: rhPeriod === p ? rp.text : rp.muted, padding: '6px 16px', cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>{p}</button>
+                    <button key={p} onClick={(e) => { e.stopPropagation(); setFinchPeriod(p) }} style={{ fontFamily: font.body, fontSize: 13, fontWeight: 600, background: finchPeriod === p ? (finchP.bg === '#FFFFFF' ? '#EBEBEB' : 'rgba(255,255,255,0.1)') : 'transparent', border: 'none', borderRadius: 7, color: finchPeriod === p ? finchP.text : finchP.muted, padding: '6px 16px', cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}>{p}</button>
                   ))}
                 </div>
               </motion.div>
@@ -845,73 +845,73 @@ export default function VizLab() {
           </>
         )}
 
-        {/* ── Bloomberg expanded ── */}
-        {selected === 'bloomberg' && (() => {
-          const s = stats(bbgPeriod)
-          const d = delta(periodData[bbgPeriod])
+        {/* ── Aster expanded ── */}
+        {selected === 'aster' && (() => {
+          const s = stats(asterPeriod)
+          const d = delta(periodData[asterPeriod])
           return (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.22 }} onClick={() => setSelected(null)}
                 style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 40 }}
               />
-              <motion.div layoutId="bbg-card" transition={BBG_SPRING}
-                style={{ position: 'fixed', top: '8vh', left: '14vw', right: '14vw', maxHeight: '84vh', overflowY: 'auto', background: bp.bg, border: `1px solid ${bp.border}`, borderRadius: 20, zIndex: 50, display: 'flex', flexDirection: 'column' }}
+              <motion.div layoutId="aster-card" transition={ASTER_SPRING}
+                style={{ position: 'fixed', top: '8vh', left: '14vw', right: '14vw', maxHeight: '84vh', overflowY: 'auto', background: asterP.bg, border: `1px solid ${asterP.border}`, borderRadius: 20, zIndex: 50, display: 'flex', flexDirection: 'column' }}
               >
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   transition={{ delay: 0.18, duration: 0.28 }}
                   style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px 28px 20px' }}
                 >
-                  <div style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 700, color: bp.orange, letterSpacing: '0.06em', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 700, color: asterP.orange, letterSpacing: '0.06em', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>SHIFT ── LOAN OPS THROUGHPUT</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ color: bp.muted }}>MAR 28, 2026</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(240,147,28,0.08)', border: `1px solid ${bp.orange}`, borderRadius: 4, padding: '3px 8px', opacity: 0.85 }}>
-                        <ModeToggle mode={bbgMode} color={bp.orange} onToggle={(e) => { e.stopPropagation(); setBbgMode(m => m === 'dark' ? 'light' : 'dark') }} />
-                        <span style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, color: bp.orange }}>{bbgMode === 'dark' ? 'DARK' : 'LIGHT'}</span>
+                      <span style={{ color: asterP.muted }}>MAR 28, 2026</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(240,147,28,0.08)', border: `1px solid ${asterP.orange}`, borderRadius: 4, padding: '3px 8px', opacity: 0.85 }}>
+                        <ModeToggle mode={asterMode} color={asterP.orange} onToggle={(e) => { e.stopPropagation(); setAsterMode(m => m === 'dark' ? 'light' : 'dark') }} />
+                        <span style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, color: asterP.orange }}>{asterMode === 'dark' ? 'DARK' : 'LIGHT'}</span>
                       </div>
-                      <button onClick={() => setSelected(null)} style={{ background: 'rgba(240,147,28,0.1)', border: `1px solid ${bp.orange}`, borderRadius: 4, width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: bp.orange, fontFamily: font.mono, fontSize: 11, fontWeight: 700 }}>✕</button>
+                      <button onClick={() => setSelected(null)} style={{ background: 'rgba(240,147,28,0.1)', border: `1px solid ${asterP.orange}`, borderRadius: 4, width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: asterP.orange, fontFamily: font.mono, fontSize: 11, fontWeight: 700 }}>✕</button>
                     </div>
                   </div>
 
-                  <div style={{ height: 1, background: bp.orange, marginBottom: 16, opacity: 0.4 }} />
+                  <div style={{ height: 1, background: asterP.orange, marginBottom: 16, opacity: 0.4 }} />
 
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                      <span style={{ fontFamily: font.mono, fontSize: 48, fontWeight: 700, color: bp.text, letterSpacing: '-1px', lineHeight: 1 }}>{s.last}</span>
-                      <span style={{ fontFamily: font.mono, fontSize: 13, fontWeight: 700, color: bp.muted }}>OUT/HR</span>
-                      <span style={{ fontFamily: font.mono, fontSize: 15, fontWeight: 700, color: d.positive ? bp.green : bp.red, marginLeft: 4 }}>{d.positive ? '▲' : '▼'} {d.str}</span>
+                      <span style={{ fontFamily: font.mono, fontSize: 48, fontWeight: 700, color: asterP.text, letterSpacing: '-1px', lineHeight: 1 }}>{s.last}</span>
+                      <span style={{ fontFamily: font.mono, fontSize: 13, fontWeight: 700, color: asterP.muted }}>OUT/HR</span>
+                      <span style={{ fontFamily: font.mono, fontSize: 15, fontWeight: 700, color: d.positive ? asterP.green : asterP.red, marginLeft: 4 }}>{d.positive ? '▲' : '▼'} {d.str}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: 0, marginTop: 10, borderTop: `1px solid ${bp.dim}`, borderBottom: `1px solid ${bp.dim}`, padding: '7px 0' }}>
+                    <div style={{ display: 'flex', gap: 0, marginTop: 10, borderTop: `1px solid ${asterP.dim}`, borderBottom: `1px solid ${asterP.dim}`, padding: '7px 0' }}>
                       {[
-                        { label: 'HIGH', value: s.high,                                 color: bp.orange },
-                        { label: 'LOW',  value: s.low,                                  color: bp.orange },
-                        { label: 'AVG',  value: s.avg,                                  color: bp.text   },
-                        { label: 'IN',   value: periodData[bbgPeriod].inflow.at(-1)!,   color: bp.amber  },
-                        { label: 'GAP',  value: s.gap > 0 ? `+${s.gap}` : `${s.gap}`,  color: s.gap > 0 ? bp.red : bp.green },
+                        { label: 'HIGH', value: s.high,                                 color: asterP.orange },
+                        { label: 'LOW',  value: s.low,                                  color: asterP.orange },
+                        { label: 'AVG',  value: s.avg,                                  color: asterP.text   },
+                        { label: 'IN',   value: periodData[asterPeriod].inflow.at(-1)!,   color: asterP.amber  },
+                        { label: 'GAP',  value: s.gap > 0 ? `+${s.gap}` : `${s.gap}`,  color: s.gap > 0 ? asterP.red : asterP.green },
                       ].map(({ label, value, color }, idx, arr) => (
-                        <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', paddingLeft: idx === 0 ? 0 : 20, paddingRight: 20, borderRight: idx < arr.length - 1 ? `1px solid ${bp.dim}` : 'none' }}>
-                          <span style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, color: bp.muted, letterSpacing: '0.08em' }}>{label}</span>
+                        <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', paddingLeft: idx === 0 ? 0 : 20, paddingRight: 20, borderRight: idx < arr.length - 1 ? `1px solid ${asterP.dim}` : 'none' }}>
+                          <span style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, color: asterP.muted, letterSpacing: '0.08em' }}>{label}</span>
                           <span style={{ fontFamily: font.mono, fontSize: 15, fontWeight: 700, color }}>{value}</span>
                         </div>
                       ))}
                       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-                        {[{ color: bp.orange, dash: false, label: 'OUT' }, { color: bp.amber, dash: true, label: 'IN' }].map(({ color, dash, label }) => (
+                        {[{ color: asterP.orange, dash: false, label: 'OUT' }, { color: asterP.amber, dash: true, label: 'IN' }].map(({ color, dash, label }) => (
                           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <svg width="14" height="8"><line x1="0" y1="4" x2="14" y2="4" stroke={color} strokeWidth={dash ? 1 : 2.5} strokeDasharray={dash ? '4 3' : undefined} /></svg>
-                            <span style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, color: bp.muted }}>{label}</span>
+                            <span style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 700, color: asterP.muted }}>{label}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{}}><ExpandedBBGChart period={bbgPeriod} p={bp} /></div>
+                  <div style={{}}><ExpandedAsterChart period={asterPeriod} p={asterP} /></div>
 
-                  <div style={{ marginTop: 10, borderTop: `1px solid ${bp.dim}`, paddingTop: 10, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 0' }}>
-                    {[{ label: 'OUT', values: periodData[bbgPeriod].outflow, color: bp.orange }, { label: 'IN', values: periodData[bbgPeriod].inflow, color: bp.amber }].map(({ label, values, color }) => (
+                  <div style={{ marginTop: 10, borderTop: `1px solid ${asterP.dim}`, paddingTop: 10, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 0' }}>
+                    {[{ label: 'OUT', values: periodData[asterPeriod].outflow, color: asterP.orange }, { label: 'IN', values: periodData[asterPeriod].inflow, color: asterP.amber }].map(({ label, values, color }) => (
                       <div key={label} style={{ display: 'contents' }}>
-                        <span style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 700, color: bp.muted, paddingRight: 16, letterSpacing: '0.08em' }}>{label} │</span>
+                        <span style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 700, color: asterP.muted, paddingRight: 16, letterSpacing: '0.08em' }}>{label} │</span>
                         <div style={{ display: 'flex' }}>{values.map((v, i) => <span key={i} style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 700, color, paddingRight: 16 }}>{v}</span>)}</div>
                       </div>
                     ))}
@@ -919,8 +919,8 @@ export default function VizLab() {
 
                   <div style={{ display: 'flex', gap: 2, marginTop: 14 }}>
                     {(['Today', '1D', '1W', '1M'] as Period[]).map(p => (
-                      <button key={p} onClick={(e) => { e.stopPropagation(); setBbgPeriod(p) }} style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 700, background: bbgPeriod === p ? 'rgba(240,147,28,0.12)' : 'transparent', border: bbgPeriod === p ? `1px solid ${bp.orange}` : '1px solid transparent', borderRadius: 4, color: bbgPeriod === p ? bp.orange : bp.muted, padding: '4px 14px', cursor: 'pointer', letterSpacing: '0.05em', transition: 'background 0.12s, color 0.12s, border-color 0.12s' }}>
-                        {bbgPeriod === p ? `[${p}]` : p}
+                      <button key={p} onClick={(e) => { e.stopPropagation(); setAsterPeriod(p) }} style={{ fontFamily: font.mono, fontSize: 12, fontWeight: 700, background: asterPeriod === p ? 'rgba(240,147,28,0.12)' : 'transparent', border: asterPeriod === p ? `1px solid ${asterP.orange}` : '1px solid transparent', borderRadius: 4, color: asterPeriod === p ? asterP.orange : asterP.muted, padding: '4px 14px', cursor: 'pointer', letterSpacing: '0.05em', transition: 'background 0.12s, color 0.12s, border-color 0.12s' }}>
+                        {asterPeriod === p ? `[${p}]` : p}
                       </button>
                     ))}
                   </div>
@@ -930,18 +930,18 @@ export default function VizLab() {
           )
         })()}
 
-        {/* ── Stripe expanded ── */}
-        {selected === 'stripe' && (() => {
-          const s = stats(strPeriod)
-          const d = delta(periodData[strPeriod])
+        {/* ── Ledger expanded ── */}
+        {selected === 'ledger' && (() => {
+          const s = stats(ledgerPeriod)
+          const d = delta(periodData[ledgerPeriod])
           return (
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.22 }} onClick={() => setSelected(null)}
                 style={{ position: 'fixed', inset: 0, background: 'rgba(10,37,64,0.55)', zIndex: 40 }}
               />
-              <motion.div layoutId="str-card" transition={STR_SPRING}
-                style={{ position: 'fixed', top: '8vh', left: '14vw', right: '14vw', maxHeight: '84vh', overflowY: 'auto', background: sp.bg, border: `1px solid ${sp.border}`, borderRadius: 20, zIndex: 50, display: 'flex', flexDirection: 'column' }}
+              <motion.div layoutId="ledger-card" transition={LEDGER_SPRING}
+                style={{ position: 'fixed', top: '8vh', left: '14vw', right: '14vw', maxHeight: '84vh', overflowY: 'auto', background: ledgerP.bg, border: `1px solid ${ledgerP.border}`, borderRadius: 20, zIndex: 50, display: 'flex', flexDirection: 'column' }}
               >
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   transition={{ delay: 0.18, duration: 0.28 }}
@@ -950,15 +950,15 @@ export default function VizLab() {
                   {/* Header */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
                     <div>
-                      <div style={{ fontFamily: font.body, fontSize: 12, fontWeight: 700, color: sp.purple, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 5 }}>Stripe Style</div>
-                      <div style={{ fontFamily: font.body, fontSize: 14, color: sp.muted }}>Loan Throughput · Outflow vs Inflow Demand</div>
+                      <div style={{ fontFamily: font.body, fontSize: 12, fontWeight: 700, color: ledgerP.purple, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 5 }}>Ledger Style</div>
+                      <div style={{ fontFamily: font.body, fontSize: 14, color: ledgerP.muted }}>Loan Throughput · Outflow vs Inflow Demand</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: sp.dim, border: `1px solid ${sp.border}`, borderRadius: 8, padding: '4px 10px' }}>
-                        <ModeToggle mode={strMode} color={sp.muted} onToggle={(e) => { e.stopPropagation(); setStrMode(m => m === 'dark' ? 'light' : 'dark') }} />
-                        <span style={{ fontFamily: font.body, fontSize: 13, color: sp.muted }}>{strMode === 'dark' ? 'Dark' : 'Light'}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: ledgerP.dim, border: `1px solid ${ledgerP.border}`, borderRadius: 8, padding: '4px 10px' }}>
+                        <ModeToggle mode={ledgerMode} color={ledgerP.muted} onToggle={(e) => { e.stopPropagation(); setLedgerMode(m => m === 'dark' ? 'light' : 'dark') }} />
+                        <span style={{ fontFamily: font.body, fontSize: 13, color: ledgerP.muted }}>{ledgerMode === 'dark' ? 'Dark' : 'Light'}</span>
                       </div>
-                      <button onClick={() => setSelected(null)} style={{ background: sp.dim, border: `1px solid ${sp.border}`, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: sp.muted, flexShrink: 0 }}>
+                      <button onClick={() => setSelected(null)} style={{ background: ledgerP.dim, border: `1px solid ${ledgerP.border}`, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: ledgerP.muted, flexShrink: 0 }}>
                         <svg width="12" height="12" fill="none" viewBox="0 0 12 12"><path d="M1.5 1.5L10.5 10.5M10.5 1.5L1.5 10.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
                       </button>
                     </div>
@@ -967,19 +967,19 @@ export default function VizLab() {
                   {/* Hero metric */}
                   <div style={{ marginBottom: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                      <span style={{ fontFamily: font.body, fontSize: 48, fontWeight: 600, color: sp.text, lineHeight: 1, letterSpacing: '-1px' }}>{periodData[strPeriod].outflow.at(-1)}</span>
-                      <span style={{ fontFamily: font.body, fontSize: 15, color: sp.muted }}>loans / hr</span>
+                      <span style={{ fontFamily: font.body, fontSize: 48, fontWeight: 600, color: ledgerP.text, lineHeight: 1, letterSpacing: '-1px' }}>{periodData[ledgerPeriod].outflow.at(-1)}</span>
+                      <span style={{ fontFamily: font.body, fontSize: 15, color: ledgerP.muted }}>loans / hr</span>
                       <span style={{ display: 'inline-flex', alignItems: 'center', background: d.positive ? 'rgba(5,150,105,0.1)' : 'rgba(220,38,38,0.1)', color: d.positive ? '#059669' : '#DC2626', fontFamily: font.body, fontWeight: 600, fontSize: 13, borderRadius: 6, padding: '3px 10px', marginLeft: 4 }}>
                         {d.positive ? '↑' : '↓'} {d.str}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10 }}>
-                      <span style={{ fontFamily: font.body, fontSize: 13, color: sp.muted }}>vs period start</span>
+                      <span style={{ fontFamily: font.body, fontSize: 13, color: ledgerP.muted }}>vs period start</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        {[{ color: sp.purple, dash: false, label: 'Outflow' }, { color: sp.teal, dash: true, label: 'Inflow' }].map(({ color, dash, label }) => (
+                        {[{ color: ledgerP.purple, dash: false, label: 'Outflow' }, { color: ledgerP.teal, dash: true, label: 'Inflow' }].map(({ color, dash, label }) => (
                           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke={color} strokeWidth={dash ? 1.5 : 2} strokeDasharray={dash ? '6 4' : undefined} /></svg>
-                            <span style={{ fontFamily: font.body, fontSize: 13, color: sp.muted }}>{label}</span>
+                            <span style={{ fontFamily: font.body, fontSize: 13, color: ledgerP.muted }}>{label}</span>
                           </div>
                         ))}
                       </div>
@@ -989,26 +989,26 @@ export default function VizLab() {
                   {/* Summary tiles */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
                     {[
-                      { label: 'Peak',       value: s.high,                                  color: sp.purple },
-                      { label: 'Low',        value: s.low,                                   color: sp.muted  },
-                      { label: 'Avg',        value: s.avg,                                   color: sp.text   },
+                      { label: 'Peak',       value: s.high,                                  color: ledgerP.purple },
+                      { label: 'Low',        value: s.low,                                   color: ledgerP.muted  },
+                      { label: 'Avg',        value: s.avg,                                   color: ledgerP.text   },
                       { label: 'Demand gap', value: s.gap > 0 ? `+${s.gap}` : `${s.gap}`,   color: s.gap > 0 ? '#DC2626' : '#059669' },
                     ].map(({ label, value, color }) => (
-                      <div key={label} style={{ background: sp.dim, border: `1px solid ${sp.border}`, borderRadius: 10, padding: '10px 14px' }}>
-                        <div style={{ fontFamily: font.body, fontSize: 11, color: sp.muted, marginBottom: 4 }}>{label}</div>
+                      <div key={label} style={{ background: ledgerP.dim, border: `1px solid ${ledgerP.border}`, borderRadius: 10, padding: '10px 14px' }}>
+                        <div style={{ fontFamily: font.body, fontSize: 11, color: ledgerP.muted, marginBottom: 4 }}>{label}</div>
                         <div style={{ fontFamily: font.body, fontSize: 20, fontWeight: 600, color, letterSpacing: '-0.3px' }}>{value}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Chart */}
-                  <div style={{}}><ExpandedStripeChart period={strPeriod} p={sp} /></div>
+                  <div style={{}}><ExpandedLedgerChart period={ledgerPeriod} p={ledgerP} /></div>
 
                   {/* Period tabs — pill style */}
-                  <div style={{ display: 'flex', gap: 4, marginTop: 16, background: sp.dim, border: `1px solid ${sp.border}`, borderRadius: 10, padding: 4, alignSelf: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 16, background: ledgerP.dim, border: `1px solid ${ledgerP.border}`, borderRadius: 10, padding: 4, alignSelf: 'flex-start' }}>
                     {(['Today', '1D', '1W', '1M'] as Period[]).map(p => (
-                      <button key={p} onClick={(e) => { e.stopPropagation(); setStrPeriod(p) }}
-                        style={{ fontFamily: font.body, fontSize: 13, fontWeight: 600, background: strPeriod === p ? sp.bg : 'transparent', border: 'none', borderRadius: 7, color: strPeriod === p ? sp.purple : sp.muted, padding: '5px 16px', cursor: 'pointer', transition: 'background 0.15s, color 0.15s', boxShadow: strPeriod === p ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>{p}
+                      <button key={p} onClick={(e) => { e.stopPropagation(); setLedgerPeriod(p) }}
+                        style={{ fontFamily: font.body, fontSize: 13, fontWeight: 600, background: ledgerPeriod === p ? ledgerP.bg : 'transparent', border: 'none', borderRadius: 7, color: ledgerPeriod === p ? ledgerP.purple : ledgerP.muted, padding: '5px 16px', cursor: 'pointer', transition: 'background 0.15s, color 0.15s', boxShadow: ledgerPeriod === p ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>{p}
                       </button>
                     ))}
                   </div>

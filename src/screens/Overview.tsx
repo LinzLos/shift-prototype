@@ -32,11 +32,91 @@ function SearchIcon() {
   )
 }
 
-function CaretDownIcon() {
+function InfoIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M3 4.5L6 7.5L9 4.5" stroke={css.textTertiary} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+      <circle cx="6.5" cy="6.5" r="5.5" stroke={css.textTertiary} strokeWidth="1.1" />
+      <path d="M6.5 5.8V9.2" stroke={css.textTertiary} strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="6.5" cy="3.9" r="0.7" fill={css.textTertiary} />
     </svg>
+  )
+}
+
+// Overview shows only the live pipeline — historical replay isn't feasible across the
+// real-time event volume, so we surface that as honest status instead of a dead toggle.
+function LiveIndicator() {
+  const [showTip, setShowTip] = useState(false)
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        height: 38,
+        padding: '0 12px',
+        background: css.surface,
+        border: `1px solid ${css.border}`,
+        borderRadius: 6,
+      }}>
+        <span className="live-dot" style={{
+          width: 7,
+          height: 7,
+          borderRadius: 100,
+          background: css.brand,
+          flexShrink: 0,
+        }} />
+        <span style={{
+          fontFamily: font.body,
+          fontSize: 12,
+          fontWeight: 700,
+          color: css.textPrimary,
+          letterSpacing: '-0.012px',
+          whiteSpace: 'nowrap',
+        }}>
+          Real Time
+        </span>
+        <button
+          onMouseEnter={() => setShowTip(true)}
+          onMouseLeave={() => setShowTip(false)}
+          onFocus={() => setShowTip(true)}
+          onBlur={() => setShowTip(false)}
+          aria-label="Why is this view real-time only?"
+          style={{
+            background: 'none', border: 'none', padding: 0, marginLeft: 2,
+            cursor: 'default', display: 'flex', alignItems: 'center',
+          }}
+        >
+          <InfoIcon />
+        </button>
+      </div>
+
+      {/* Tiny Wire popover — short header + tight body */}
+      {showTip && (
+        <div
+          className="filter-enter"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 8px)',
+            right: 0,
+            minWidth: 200,
+            maxWidth: 230,
+            background: css.surface,
+            border: `1px solid ${css.border}`,
+            borderRadius: 8,
+            padding: 12,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+            zIndex: 300,
+          }}
+        >
+          <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.textPrimary, marginBottom: 6 }}>
+            Real-time only
+          </div>
+          <span style={{ fontFamily: font.body, fontSize: 12, fontWeight: 500, color: css.textSecondary, lineHeight: 1.5 }}>
+            No historical replay. Use <strong style={{ color: css.textPrimary }}>Queue Monitor</strong> for time ranges.
+          </span>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -189,8 +269,6 @@ function CheckIcon() {
 // ─── Header Bar ──────────────────────────────────────────────────────────────
 
 function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (v: string) => void }) {
-  const tabs = ['Real Time', '1d', 'Week', 'Month', 'Custom']
-
   return (
     <div style={{
       background: css.surfacePage,
@@ -284,47 +362,8 @@ function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSea
           )}
         </div>
 
-        {/* Time filter tabs */}
-        <div style={{ display: 'flex', height: 38 }}>
-          {tabs.map((tab, i) => {
-            const isActive = tab === 'Real Time'
-            const isFirst = i === 0
-            const isLast = i === tabs.length - 1
-            return (
-              <div
-                key={tab}
-                style={{
-                  background: isActive ? css.brand : css.surface,
-                  borderTop: `1px solid ${css.border}`,
-                  borderBottom: `1px solid ${css.border}`,
-                  borderLeft: (isFirst || isActive) ? `1px solid ${css.border}` : 'none',
-                  borderRight: `1px solid ${css.border}`,
-                  borderRadius: isFirst ? '4px 0 0 4px' : isLast ? '0 4px 4px 0' : 0,
-                  marginLeft: isActive && !isFirst ? '-1px' : 0,
-                  position: 'relative',
-                  zIndex: isActive ? 1 : 0,
-                  padding: '0 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  cursor: 'pointer',
-                }}
-              >
-                <span style={{
-                  fontFamily: font.body,
-                  fontSize: 12,
-                  fontWeight: isActive ? 700 : 400,
-                  color: isActive ? css.surface : css.textTertiary,
-                  letterSpacing: '-0.012px',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {tab}
-                </span>
-                {isLast && <CaretDownIcon />}
-              </div>
-            )
-          })}
-        </div>
+        {/* Live status — Overview is real-time only by design */}
+        <LiveIndicator />
       </div>
     </div>
   )

@@ -382,7 +382,7 @@ const periodConfig: Record<string, PeriodConfig> = {
       bannerStat: '+112 net today',
     },
     alerts: [
-      { title: '14 loans within 5 days of closing',               body: 'Tighten closing threshold.',  variant: 'critical' },
+      { title: '14 loans within 5 days of closing',               body: 'Tighten closing threshold.',  variant: 'critical', cta: { label: 'See loan details', action: 'loans' } },
       { title: 'Inflow outpacing outflow for 4 consecutive days',  body: 'Rebalance specialist load.', variant: 'critical', cta: { label: 'Reassign Staff', action: 'reassign' } },
       { title: '2 specialists consistently idle',                  body: 'Review Roster assignments.', variant: 'warning',  cta: { label: 'Go to Roster',   action: 'roster'   } },
     ],
@@ -581,7 +581,7 @@ type AlertItem = {
   title: string
   body: string
   variant: 'critical' | 'warning'
-  cta?: { label: string; action: 'reassign' | 'roster' }
+  cta?: { label: string; action: 'reassign' | 'roster' | 'loans' }
 }
 
 
@@ -590,7 +590,7 @@ const alertVariantStyles = {
   warning:  { bg: 'var(--warning-light)', border: 'var(--warning-mid)', titleColor: css.warning },
 }
 
-function AlertsCard({ onReassign, onRoster, transferred, isRealTime, periodAlerts, chartData }: { onReassign: () => void; onRoster: () => void; transferred: string[]; isRealTime: boolean; periodAlerts: AlertItem[]; chartData: ChartData }) {
+function AlertsCard({ onReassign, onRoster, onLoans, transferred, isRealTime, periodAlerts, chartData }: { onReassign: () => void; onRoster: () => void; onLoans: () => void; transferred: string[]; isRealTime: boolean; periodAlerts: AlertItem[]; chartData: ChartData }) {
   const staffActioned = transferred.length > 0
   const items = periodAlerts
 
@@ -613,7 +613,9 @@ function AlertsCard({ onReassign, onRoster, transferred, isRealTime, periodAlert
         const isResolved = a.cta?.action === 'reassign' && staffActioned
         const s = alertVariantStyles[a.variant]
         const ctaColor = a.variant === 'critical' ? css.danger : css.warning
-        const handleCta = a.cta?.action === 'reassign' ? onReassign : onRoster
+        const handleCta = a.cta?.action === 'reassign' ? onReassign : a.cta?.action === 'loans' ? onLoans : onRoster
+        // Loans drill-down is read-only — available in every time range; staffing actions stay real-time only.
+        const showCta = !!a.cta && (isRealTime || a.cta.action === 'loans')
 
         if (isResolved) {
           return (
@@ -684,7 +686,7 @@ function AlertsCard({ onReassign, onRoster, transferred, isRealTime, periodAlert
               <div style={{ fontFamily: font.body, fontSize: 13, color: css.textSecondary, lineHeight: 1.5 }}>
                 {a.body}
               </div>
-              {a.cta && isRealTime && (
+              {a.cta && showCta && (
                 <button
                   onClick={handleCta}
                   style={{
@@ -1176,7 +1178,7 @@ export default function QueueMonitor() {
       {/* Main row: left col (alerts + chart) | right col (capacity + rankings) */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
-          <AlertsCard onReassign={() => setShowModal(true)} onRoster={() => navigate('/roster')} transferred={transferred} isRealTime={isRealTime} periodAlerts={period.alerts} chartData={period.chart} />
+          <AlertsCard onReassign={() => setShowModal(true)} onRoster={() => navigate('/roster')} onLoans={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })} transferred={transferred} isRealTime={isRealTime} periodAlerts={period.alerts} chartData={period.chart} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <CapacityCard onReassign={() => setShowModal(true)} transferred={transferred} isRealTime={isRealTime} capacityData={period.capacity} />
