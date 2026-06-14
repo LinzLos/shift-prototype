@@ -1,73 +1,46 @@
-# React + TypeScript + Vite
+# 🔀 Shift — Loan-Servicing Operations Console
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive UX prototype of a **loan-servicing operations console** — the multi-screen workspace an operations lead uses to keep loan queues moving: watching live demand, shifting specialist capacity and queue priority, and catching loans at risk of missing a closing deadline before they slip.
 
-Currently, two official plugins are available:
+### ▶️ [Live demo → shift-prototype.netlify.app](https://shift-prototype.netlify.app/)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+It's a working multi-screen front-end, not a set of static comps: queues update live, actions you take on one screen carry through to the others, and a closing-risk alert drills straight into the loan behind it.
 
-## React Compiler
+> **On the terminology:** this prototype uses generalized language. Internal system names, proprietary metrics, and business-specific thresholds are abstracted to protect confidential information. The design decisions, constraints, and interactions are accurate representations of the real work.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## The screens
 
-## Expanding the ESLint configuration
+Six connected views, sharing one live queue state:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Overview** — the live operations pipeline at a glance. Surfaces only the real-time picture and says so honestly — historical replay isn't feasible across the event volume, so that's shown as status rather than a dead toggle.
+- **Queue Monitor** — live loan queues with their ranking rules, and closing-risk alerts that **drill straight into the loan** behind the alert.
+- **Loans** — the loan-level drill-down a risk alert lands you on, with the detail needed to act.
+- **Simulation** — a what-if surface for re-ranking and throughput: try a different queue priority and see the projected effect before committing.
+- **Performance** — loans completed against target pace, for tracking whether the operation is keeping up.
+- **Roster** — specialist staffing: who's **assigned** vs. **trained** on which queue, and how queue load maps to available capacity.
+- **Viz Lab** — throughput visualizations (inflow vs. outflow demand) — the exploratory corner where the data views get prototyped.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Interaction craft worth a look
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Shared live state** — a queue you action on one screen stays actioned as you move across the console (a small `QueueContext`), so the workspace behaves like one system instead of seven disconnected pages.
+- **Alert → drill-down** — closing-risk alerts in Queue Monitor route directly to the underlying loan, modeling the real "see a problem → act on it" path rather than a dead-end notification.
+- **Honest live-only status** — where real-time constraints rule out a feature (historical replay), the UI states it plainly instead of faking a control.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Built with
+
+- **[Tiny Wire](https://linzlos.github.io/tiny-wire/)** ([source](https://github.com/LinzLos/tiny-wire)) — the design system this is built on; tokens, type, and components come from it. Includes full light/dark theming with a persisted toggle.
+- **React 19** + **TypeScript** + **Vite** + **React Router** + **Tailwind CSS v4**.
+- Deployed on **Netlify** with SPA routing fallback.
+
+## Run it locally
+
+```bash
+npm install
+npm run dev      # start the dev server (Vite)
+npm run build    # type-check + production build to dist/
+npm run preview  # serve the production build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Credits
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Designed and built by **Lindsay Zuñiga**. Built on the [Tiny Wire](https://github.com/LinzLos/tiny-wire) design system. Please credit when remixing or adapting — feedback welcome → [linkedin.com/in/zunigo](https://www.linkedin.com/in/zunigo)
