@@ -112,6 +112,8 @@ export default function Sidenave() {
             <div key={path} style={{ position: 'relative', display: 'flex', justifyContent: 'center' }} className="nav-item-wrap">
               <Link
                 to={path}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--surface-muted)' }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -119,11 +121,10 @@ export default function Sidenave() {
                   width: 40,
                   height: 40,
                   borderRadius: 8,
-                  background: isActive ? 'var(--surface)' : 'transparent',
-                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  background: isActive ? 'var(--surface-muted)' : 'transparent',
                   textDecoration: 'none',
                   flexShrink: 0,
-                  transition: 'background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease',
+                  transition: 'background 0.18s ease',
                 }}
               >
                 <svg width="20" height="20" fill="none" viewBox={viewBox}>
