@@ -27,7 +27,7 @@ function Divider() {
 
 function IconSun() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="4.5" />
       <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
     </svg>
@@ -35,7 +35,7 @@ function IconSun() {
 }
 function IconMoon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   )
@@ -51,23 +51,25 @@ function ThemeToggle() {
     try { localStorage.setItem('tw-theme', next ? 'dark' : 'light') } catch { /* ignore */ }
   }
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      title={dark ? 'Switch to light' : 'Switch to dark'}
-      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-      aria-pressed={dark}
-      style={{
-        width: 40, height: 40, borderRadius: 8, border: 0, background: 'transparent',
-        color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        transition: 'background 0.18s ease, color 0.18s ease',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-muted)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
-    >
-      {dark ? <IconSun /> : <IconMoon />}
-    </button>
+    <div className="nav-item-wrap" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+        aria-pressed={dark}
+        style={{
+          width: 40, height: 40, borderRadius: 8, border: 0, background: 'transparent',
+          color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          transition: 'background 0.18s ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-muted)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+      >
+        {dark ? <IconSun /> : <IconMoon />}
+      </button>
+      <div className="nav-tooltip">{dark ? 'Switch to light' : 'Switch to dark'}</div>
+    </div>
   )
 }
 
