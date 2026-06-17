@@ -1,6 +1,6 @@
-# 🔀 Shift — Loan-Servicing Operations Console
+# 🔀 Shift — Loan-Allocation Operations Console
 
-An interactive UX prototype of a **loan-servicing operations console** — the multi-screen workspace an operations lead uses to keep loan queues moving: watching live demand, shifting specialist capacity and queue priority, and catching loans at risk of missing a closing deadline before they slip.
+An interactive UX prototype of a **back-of-house operations console for loan allocation** — the multi-screen workspace an operations lead uses to keep loan queues moving: watching live demand, shifting specialist capacity and queue priority, and catching loans at risk of missing a closing deadline before they slip.
 
 ### ▶️ [Live demo → shift-prototype.netlify.app](https://shift-prototype.netlify.app/)
 
