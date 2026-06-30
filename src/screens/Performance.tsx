@@ -1,3 +1,5 @@
+import LedgerChart from '../components/LedgerChart'
+
 const css = {
   brand: 'var(--brand)',
   danger: 'var(--danger)',
@@ -185,37 +187,10 @@ function KpiCard({ label, value, sub, subColor }: KpiCardProps) {
 // ─── Throughput Chart ─────────────────────────────────────────────────────────
 
 function ThroughputChart() {
-  const W = 600
-  const H = 140
-  const padL = 40
-  const padR = 48
-  const padT = 12
-  const padB = 28
-
-  const chartW = W - padL - padR
-  const chartH = H - padT - padB
-
   const xLabels = ['12a', '9a', '12p', '1p', '2p', '3p', 'Now']
-  const toX = (i: number) => padL + (i / (xLabels.length - 1)) * chartW
-
-  // Loans completed (max 120) — left axis
-  const loansData = [10, 30, 60, 70, 80, 88, 91]
-  const loansMax = 120
-  const toYLoans = (v: number) => padT + chartH - (v / loansMax) * chartH
-
-  // Handle time avg in minutes (max 240) — right axis
-  const handleData = [180, 160, 120, 100, 95, 90, 87]
-  const handleMax = 240
-  const toYHandle = (v: number) => padT + chartH - (v / handleMax) * chartH
-
-  // Target pace (loans) — dashed line ~linear to 91
-  const targetData = [0, 20, 45, 52, 62, 75, 91]
-
-  const toPoints = (data: number[], toY: (v: number) => number) =>
-    data.map((v, i) => `${toX(i)},${toY(v)}`).join(' ')
-
-  const yLeftLabels = [0, 40, 80, 120]
-  const yRightLabels = [0, 80, 160, 240]
+  const loansData  = [10, 30, 60, 70, 80, 88, 91]   // left axis (loans completed)
+  const handleData = [180, 160, 120, 100, 95, 90, 87] // right axis (handle time, min)
+  const targetData = [0, 20, 45, 52, 62, 75, 91]    // left axis (target pace)
 
   return (
     <div style={{
@@ -231,99 +206,20 @@ function ThroughputChart() {
         <span style={{ fontFamily: font.heading, fontSize: 15, fontWeight: 700, color: css.textPrimary }}>
           Team throughput over time
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 16, height: 2, background: 'var(--info)', borderRadius: 1 }} />
-            <span style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary }}>Loans completed</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 16, height: 2, background: css.textPrimary, borderRadius: 1 }} />
-            <span style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary }}>Handle time avg.</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <svg width="16" height="4" viewBox="0 0 16 4">
-              <path d="M0 2h4M6 2h4M12 2h4" stroke={css.textTertiary} strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-            <span style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary }}>Target pace</span>
-          </div>
-        </div>
       </div>
 
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible' }}>
-        {/* Grid lines */}
-        {yLeftLabels.map((v) => (
-          <line
-            key={v}
-            x1={padL} y1={toYLoans(v)}
-            x2={W - padR} y2={toYLoans(v)}
-            stroke={css.border} strokeWidth="0.8"
-          />
-        ))}
-
-        {/* Y-axis left labels */}
-        {yLeftLabels.map((v) => (
-          <text
-            key={v}
-            x={padL - 6} y={toYLoans(v) + 4}
-            textAnchor="end"
-            fontFamily={font.body} fontSize="9" fill="var(--text-tertiary)"
-          >{v}</text>
-        ))}
-
-        {/* Y-axis right labels */}
-        {yRightLabels.map((v) => (
-          <text
-            key={v}
-            x={W - padR + 6} y={toYHandle(v) + 4}
-            textAnchor="start"
-            fontFamily={font.body} fontSize="9" fill="var(--text-tertiary)"
-          >{v}</text>
-        ))}
-
-        {/* X-axis labels */}
-        {xLabels.map((label, i) => (
-          <text
-            key={label}
-            x={toX(i)} y={H - 4}
-            textAnchor="middle"
-            fontFamily={font.body} fontSize="9" fill="var(--text-tertiary)"
-          >{label}</text>
-        ))}
-
-        {/* Target pace dashed line */}
-        <polyline
-          points={toPoints(targetData, toYLoans)}
-          fill="none"
-          stroke="var(--text-tertiary)"
-          strokeWidth="1.5"
-          strokeDasharray="4 3"
-          strokeLinecap="round"
-        />
-
-        {/* Handle time line */}
-        <polyline
-          points={toPoints(handleData, toYHandle)}
-          fill="none"
-          stroke="var(--text-primary)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Loans completed line */}
-        <polyline
-          points={toPoints(loansData, toYLoans)}
-          fill="none"
-          stroke="#1b4079"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Endpoint dots */}
-        <circle cx={toX(6)} cy={toYLoans(91)} r="4" fill="#1b4079" />
-        <circle cx={toX(6)} cy={toYHandle(87)} r="4" fill="var(--text-primary)" />
-      </svg>
+      <LedgerChart
+        xLabels={xLabels}
+        viewW={600}
+        viewH={170}
+        left={{ min: 0, max: 120, ticks: [0, 40, 80, 120] }}
+        right={{ min: 0, max: 240, ticks: [0, 80, 160, 240], format: (v) => `${v}m` }}
+        series={[
+          { label: 'Loans completed',  values: loansData,  color: 'var(--chart-blue)', variant: 'area' },
+          { label: 'Handle time avg.', values: handleData, color: 'var(--text-primary)', variant: 'dashed', axis: 'right', format: (v) => `${v}m` },
+          { label: 'Target pace',      values: targetData, color: 'var(--border-strong)', variant: 'reference' },
+        ]}
+      />
 
       {/* Insight banner */}
       <div style={{

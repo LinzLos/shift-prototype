@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import RosterModal from '../components/RosterModal'
+import LedgerChart from '../components/LedgerChart'
 import { useQueueContext } from '../QueueContext'
 
 const css = {
@@ -473,86 +474,21 @@ const periodConfig: Record<string, PeriodConfig> = {
 // ─── Chart ────────────────────────────────────────────────────────────────────
 
 function InflowOutflowChart({ data }: { data: ChartData }) {
-  const W = 480
-  const H = 160
-  const padL = 36
-  const padR = 12
-  const padT = 12
-  const padB = 24
-  const cW = W - padL - padR
-  const cH = H - padT - padB
-
   const { xLabels, outflow, inflow, bannerText, bannerStat } = data
-  const allVals = [...outflow, ...inflow]
-  const maxVal = Math.max(...allVals)
-  const minVal = Math.min(...allVals)
-  const maxY = Math.ceil((maxVal + 20) / 50) * 50
-  const minY = Math.max(0, Math.floor((minVal - 15) / 25) * 25)
-  const yRange = maxY - minY
-  const yLeft = [1, 2, 3].map(n => Math.round(minY + (yRange * n) / 4))
   const target = xLabels.map(() => 108)
-
-  function toX(i: number) { return padL + (i / (xLabels.length - 1)) * cW }
-  function toY(v: number)  { return padT + cH - ((v - minY) / (maxY - minY)) * cH }
-
-  function pts(arr: number[]) {
-    return arr.map((v, i) => `${toX(i)},${toY(v)}`).join(' ')
-  }
-  function pathD(arr: number[]) {
-    return arr.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)} ${toY(v)}`).join(' ')
-  }
 
   return (
     <div>
-      {/* Legend */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-        {[
-          { label: 'Inflow',      dot: '#5B9BD5', dashed: false },
-          { label: 'Outflow',     dot: '#333',    dashed: false },
-          { label: 'Target pace', dot: '#aaa',    dashed: true  },
-        ].map(({ label, dot, dashed }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {dashed
-              ? <svg width="14" height="8"><line x1="0" y1="4" x2="14" y2="4" stroke={dot} strokeWidth="1.5" strokeDasharray="3 2" /></svg>
-              : <svg width="8" height="8"><circle cx="4" cy="4" r="3" fill={dot} /></svg>
-            }
-            <span style={{ fontFamily: font.body, fontSize: 10, color: css.textTertiary }}>{label}</span>
-          </div>
-        ))}
-      </div>
-
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
-        {yLeft.map((v) => (
-          <g key={v}>
-            <line x1={padL} y1={toY(v)} x2={W - padR} y2={toY(v)} stroke={css.border} strokeWidth="0.5" strokeDasharray="3 3" />
-            <text x={padL - 5} y={toY(v) + 4} textAnchor="end" style={{ fontFamily: font.body, fontSize: 9, fill: css.textTertiary }}>{v}</text>
-          </g>
-        ))}
-
-        {xLabels.map((l, i) => (
-          <text
-            key={i}
-            x={toX(i)}
-            y={H - 4}
-            textAnchor={i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'}
-            style={{ fontFamily: font.body, fontSize: 9, fill: css.textTertiary }}
-          >
-            {l}
-          </text>
-        ))}
-
-        <polyline points={pts(target)} fill="none" stroke="#aaa" strokeWidth="1" strokeDasharray="4 3" />
-
-        <path d={pathD(outflow)} fill="none" stroke="#1E1918" strokeWidth="1.5" strokeLinejoin="round" />
-        {outflow.map((v, i) => (
-          <circle key={i} cx={toX(i)} cy={toY(v)} r="2.5" fill={css.surface} stroke="#1E1918" strokeWidth="1.2" />
-        ))}
-
-        <path d={pathD(inflow)} fill="none" stroke="#5B9BD5" strokeWidth="1.5" strokeLinejoin="round" />
-        {inflow.map((v, i) => (
-          <circle key={i} cx={toX(i)} cy={toY(v)} r="2.5" fill={css.surface} stroke="#5B9BD5" strokeWidth="1.2" />
-        ))}
-      </svg>
+      <LedgerChart
+        xLabels={xLabels}
+        viewW={480}
+        viewH={188}
+        series={[
+          { label: 'Outflow',     values: outflow, color: 'var(--chart-blue)',  variant: 'area' },
+          { label: 'Inflow',      values: inflow,  color: 'var(--chart-azure)', variant: 'dashed' },
+          { label: 'Target pace', values: target,  color: 'var(--border-strong)', variant: 'reference' },
+        ]}
+      />
 
       <div style={{
         marginTop: 12,
