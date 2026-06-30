@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .netlify
 .claude/
+
+# Generated portfolio screenshots (canonical copies live in zunigo-2026)
+portfolio-exports/
