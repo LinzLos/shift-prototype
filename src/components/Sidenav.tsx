@@ -79,7 +79,8 @@ const navItems = [
   { path: '/simulation',   label: 'Simulation',    viewBox: '0 0 20 16',        d: svgPaths.p13148300  },
   { path: '/performance',  label: 'Performance',   viewBox: '0 0 21 21',        d: svgPaths.p266d6340  },
   { path: '/roster',       label: 'Roster',        viewBox: '0 0 22 22.0001',   d: svgPaths.p383f7100  },
-  { path: '/viz-lab',      label: 'Viz Lab',       viewBox: '0 0 20 22',        d: 'M7 2h6M8 2v6L4 16a2 2 0 001.8 2.9h8.4A2 2 0 0016 16l-4-8V2' },
+  // Viz Lab — internal design lab, hidden from the product nav for portfolio
+  // { path: '/viz-lab',      label: 'Viz Lab',       viewBox: '0 0 20 22',        d: 'M7 2h6M8 2v6L4 16a2 2 0 001.8 2.9h8.4A2 2 0 0016 16l-4-8V2' },
 ]
 
 export default function Sidenave() {
