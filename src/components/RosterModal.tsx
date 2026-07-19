@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { getSourceQueues, type QueueHealth, type SourceQueue } from '../data/queues'
+import { assignedTo } from '../data/team'
+import { useQueueContext } from '../QueueContext'
 
 const css = {
   brand: 'var(--brand)',
@@ -17,79 +20,6 @@ const font = {
   heading: "'Bricolage Grotesque', sans-serif",
   body: "'DM Sans', sans-serif",
 }
-
-// ─── Source queue data ────────────────────────────────────────────────────────
-
-type QueueHealth = 'healthy' | 'warning' | 'at-risk'
-
-type SourceQueue = {
-  name: string
-  health: QueueHealth
-  capacityPct: number   // 0-100, % of capacity used
-  eligibleCount: number // trained for Refinance
-  specialists: Specialist[]
-  suggested: boolean
-  suggestReason?: string
-  warningReason?: string
-}
-
-type Specialist = {
-  name: string
-  trainedQueues: string[]
-}
-
-const sourceQueues: SourceQueue[] = [
-  {
-    name: 'Employment Verification',
-    health: 'healthy',
-    capacityPct: 62,
-    eligibleCount: 4,
-    suggested: true,
-    suggestReason: '4 specialists trained for Refinance · Queue at 62% capacity — safe to pull from',
-    specialists: [
-      { name: 'Theo Bateman',  trainedQueues: ['Refinance', 'Employment Verification'] },
-      { name: 'Yemi Osei',     trainedQueues: ['Employment Verification', 'Refinance'] },
-      { name: 'Jordan Marks',  trainedQueues: ['Refinance', 'Broker'] },
-      { name: 'Priya Okonkwo', trainedQueues: ['Employment Verification', 'Refinance', 'Priority escalation'] },
-    ],
-  },
-  {
-    name: 'Purchase Agreement',
-    health: 'warning',
-    capacityPct: 81,
-    eligibleCount: 2,
-    suggested: false,
-    warningReason: 'Queue at 81% capacity — moving specialists may destabilize this queue',
-    specialists: [
-      { name: 'Dana Reyes',   trainedQueues: ['Purchase Agreement', 'Refinance'] },
-      { name: 'Marcus Webb',  trainedQueues: ['Purchase Agreement', 'Refinance', 'Payoff'] },
-    ],
-  },
-  {
-    name: 'Title & Settlement',
-    health: 'at-risk',
-    capacityPct: 96,
-    eligibleCount: 1,
-    suggested: false,
-    warningReason: 'Queue at 96% capacity — pulling from here is not recommended',
-    specialists: [
-      { name: 'Steph Curry', trainedQueues: ['Title & Settlement', 'Refinance', 'Condo Eligibility'] },
-    ],
-  },
-  {
-    name: 'Payoff',
-    health: 'healthy',
-    capacityPct: 44,
-    eligibleCount: 1,
-    suggested: false,
-    specialists: [
-      { name: 'Ryan Coogler', trainedQueues: ['Payoff', 'Refinance'] },
-    ],
-  },
-]
-
-const currentRefinance = ['Simone Adeyemi', 'Steph Curry', 'Draymond Green', 'Chris Navarro']
-const REFINANCE_CURRENT = 14
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -139,16 +69,6 @@ function ArrowSmallIcon() {
   )
 }
 
-function SearchIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <circle cx="5" cy="5" r="3.5" stroke="var(--text-tertiary)" strokeWidth="1.2" />
-      <path d="M8 8L10.5 10.5" stroke="var(--text-tertiary)" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-
 function CaretDownIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -191,7 +111,6 @@ function InfoPill({ label }: { label: string }) {
   )
 }
 
-
 // ─── Health dot ───────────────────────────────────────────────────────────────
 
 const healthColor: Record<QueueHealth, string> = {
@@ -233,9 +152,14 @@ function HealthPill({ health, capacityPct }: { health: QueueHealth; capacityPct:
 
 // ─── Summary Bar ──────────────────────────────────────────────────────────────
 
-function SummaryBar({ source, stagedCount }: { source: SourceQueue; stagedCount: number }) {
+function SummaryBar({ source, stagedCount, target, targetCurrent }: {
+  source: SourceQueue
+  stagedCount: number
+  target: string
+  targetCurrent: number
+}) {
   const sourceAfter = source.specialists.length - stagedCount
-  const targetAfter = REFINANCE_CURRENT + stagedCount
+  const targetAfter = targetCurrent + stagedCount
 
   // Border color follows source queue health — same system as HealthPill
   const solidColor = healthColor[source.health]
@@ -258,15 +182,15 @@ function SummaryBar({ source, stagedCount }: { source: SourceQueue; stagedCount:
     {
       label: 'SPECIALISTS BEING MOVED',
       value: `${stagedCount}`,
-      sub: stagedCount === 0 ? 'Select specialists below' : stagedCount === 1 ? 'Trained for Refinance' : 'All trained for Refinance',
+      sub: stagedCount === 0 ? 'Select specialists below' : stagedCount === 1 ? `Trained for ${target}` : `All trained for ${target}`,
       roundedLeft: false, roundedRight: false,
       borderLeft: false, borderRight: false,
       isCenter: true,
     },
     {
       label: 'TRANSFER TARGET',
-      value: 'Refinance',
-      from: `${REFINANCE_CURRENT} specialists`,
+      value: target,
+      from: `${targetCurrent} specialists`,
       to: `${targetAfter} specialists`,
       roundedLeft: false, roundedRight: true,
       borderLeft: false, borderRight: true,
@@ -323,21 +247,27 @@ function SummaryBar({ source, stagedCount }: { source: SourceQueue; stagedCount:
 // ─── Source Queue Picker ──────────────────────────────────────────────────────
 
 function SourceQueuePicker({
+  sourceQueues,
   selected,
   onSelect,
   open,
   onToggleOpen,
+  target,
 }: {
+  sourceQueues: SourceQueue[]
   selected: SourceQueue
   onSelect: (q: SourceQueue) => void
   open: boolean
   onToggleOpen: () => void
+  target: string
 }) {
   return (
     <div style={{ position: 'relative' }}>
       {/* Trigger */}
       <button
         onClick={onToggleOpen}
+        aria-expanded={open}
+        aria-label={`Source queue: ${selected.name}`}
         style={{
           display: 'flex', alignItems: 'center', gap: 6, width: '100%',
           background: css.surface, border: `0.8px solid ${css.border}`,
@@ -360,25 +290,16 @@ function SourceQueuePicker({
           borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
           overflow: 'hidden',
         }}>
-          {/* Search */}
-          <div style={{
-            padding: '8px 10px', borderBottom: `1px solid ${css.border}`,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <SearchIcon />
-            <span style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary }}>
-              Search queues...
-            </span>
-          </div>
-
           {sourceQueues.map((q) => {
             const isSelected = q.name === selected.name
             return (
-              <div
+              <button
                 key={q.name}
                 onClick={() => { onSelect(q); onToggleOpen() }}
                 style={{
+                  width: '100%', textAlign: 'left',
                   padding: '10px 12px',
+                  borderTop: 'none', borderLeft: 'none', borderRight: 'none',
                   borderBottom: `1px solid ${css.border}`,
                   background: isSelected ? css.surfacePage : css.surface,
                   cursor: 'pointer',
@@ -408,7 +329,7 @@ function SourceQueuePicker({
                   <HealthPill health={q.health} capacityPct={q.capacityPct} />
                 </div>
                 <span style={{ fontFamily: font.body, fontSize: 10, color: css.textTertiary }}>
-                  {q.eligibleCount} specialist{q.eligibleCount !== 1 ? 's' : ''} trained for Refinance
+                  {q.specialists.length} specialist{q.specialists.length !== 1 ? 's' : ''} trained for {target}
                 </span>
                 {q.warningReason && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
@@ -421,7 +342,7 @@ function SourceQueuePicker({
                     </span>
                   </div>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>
@@ -475,17 +396,21 @@ function SourceWarningBanner({ reason, health }: { reason: string; health: Queue
 // ─── Left Panel — Available to Transfer ──────────────────────────────────────
 
 function LeftPanel({
+  sourceQueues,
   source,
   staged,
   onToggle,
   onSelectAll,
   onSelectSource,
+  target,
 }: {
+  sourceQueues: SourceQueue[]
   source: SourceQueue
   staged: string[]
   onToggle: (name: string) => void
   onSelectAll: () => void
   onSelectSource: (q: SourceQueue) => void
+  target: string
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
 
@@ -505,7 +430,7 @@ function LeftPanel({
             Available to Transfer
           </span>
           <div style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary, marginTop: 1 }}>
-            Trained for Refinance
+            Trained for {target}
           </div>
         </div>
         <InfoPill label={`${source.specialists.length} eligible`} />
@@ -520,10 +445,12 @@ function LeftPanel({
           Source queue
         </span>
         <SourceQueuePicker
+          sourceQueues={sourceQueues}
           selected={source}
           onSelect={onSelectSource}
           open={pickerOpen}
           onToggleOpen={() => setPickerOpen(o => !o)}
+          target={target}
         />
         {source.suggested && source.suggestReason && (
           <AISuggestionBanner reason={source.suggestReason} />
@@ -538,12 +465,13 @@ function LeftPanel({
         {source.specialists.map((s) => {
           const isStaged = staged.includes(s.name)
           return (
-            <div
+            <button
               key={s.name}
               onClick={() => onToggle(s.name)}
+              aria-pressed={isStaged}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '8px 18px', borderTop: `1px solid ${css.border}`,
+                display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
+                padding: '8px 18px', border: 'none', borderTop: `1px solid ${css.border}`,
                 background: isStaged ? 'rgba(98,148,96,0.06)' : css.surface,
                 cursor: 'pointer',
               }}
@@ -559,9 +487,9 @@ function LeftPanel({
                   {s.trainedQueues.map((q) => (
                     <span key={q} style={{
                       fontFamily: font.body, fontSize: 9, fontWeight: 700,
-                      color: q === 'Refinance' ? 'var(--brand-dark)' : css.textTertiary,
-                      background: q === 'Refinance' ? 'var(--brand-light)' : 'var(--surface-subtle)',
-                      border: `0.8px solid ${q === 'Refinance' ? 'var(--brand-mid)' : 'var(--border-light)'}`,
+                      color: q === target ? 'var(--brand-dark)' : css.textTertiary,
+                      background: q === target ? 'var(--brand-light)' : 'var(--surface-subtle)',
+                      border: `0.8px solid ${q === target ? 'var(--brand-mid)' : 'var(--border-light)'}`,
                       borderRadius: 6, padding: '3px 8px',
                     }}>
                       {q}
@@ -569,7 +497,7 @@ function LeftPanel({
                   ))}
                 </div>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
@@ -599,16 +527,20 @@ function LeftPanel({
   )
 }
 
-// ─── Right Panel — Refinance Queue ────────────────────────────────────────────
+// ─── Right Panel — Target Queue ───────────────────────────────────────────────
 
 function RightPanel({
   staged,
   onRemove,
+  target,
+  currentNames,
 }: {
   staged: string[]
   onRemove: (name: string) => void
+  target: string
+  currentNames: string[]
 }) {
-  const afterCount = REFINANCE_CURRENT + staged.length
+  const afterCount = currentNames.length + staged.length
 
   return (
     <div style={{
@@ -623,13 +555,13 @@ function RightPanel({
       }}>
         <div>
           <span style={{ fontFamily: font.body, fontSize: 14, fontWeight: 700, color: css.textSecondary }}>
-            Refinance
+            {target}
           </span>
           <div style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary, marginTop: 1 }}>
             Current assignment
           </div>
         </div>
-        <InfoPill label={`${REFINANCE_CURRENT} specialists`} />
+        <InfoPill label={`${currentNames.length} specialists`} />
       </div>
 
       {/* Staged incoming */}
@@ -657,7 +589,7 @@ function RightPanel({
                 <span style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.textPrimary }}>
                   {name}
                 </span>
-                <button onClick={() => onRemove(name)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <button onClick={() => onRemove(name)} aria-label={`Remove ${name} from transfer`} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                   <MinusCircleIcon />
                 </button>
               </div>
@@ -666,9 +598,9 @@ function RightPanel({
         </div>
       )}
 
-      {/* Existing specialists */}
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {currentRefinance.map((name) => (
+      {/* Existing specialists — full current roster, scrollable */}
+      <div className="scroll-hidden" style={{ display: 'flex', flexDirection: 'column', maxHeight: 280, overflowY: 'auto' }}>
+        {currentNames.map((name) => (
           <div
             key={name}
             style={{
@@ -715,13 +647,17 @@ function RightPanel({
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
 type RosterModalProps = {
+  target?: string
   onClose: () => void
   onApply: (count: number, source: string, names: string[]) => void
 }
 
-export default function RosterModal({ onClose, onApply }: RosterModalProps) {
-  const suggested = sourceQueues.find((q) => q.suggested)!
-  const [source, setSource] = useState<SourceQueue>(suggested)
+export default function RosterModal({ target = 'Refinance', onClose, onApply }: RosterModalProps) {
+  const { transfers } = useQueueContext()
+  const sourceQueues = getSourceQueues(target, transfers)
+  const currentNames = [...transfers, ...assignedTo(target).map((m) => m.name)]
+  const initial: SourceQueue | undefined = sourceQueues.find((q) => q.suggested) ?? sourceQueues[0]
+  const [source, setSource] = useState<SourceQueue | undefined>(initial)
   const [staged, setStaged] = useState<string[]>([])
 
   function handleSelectSource(q: SourceQueue) {
@@ -738,7 +674,42 @@ export default function RosterModal({ onClose, onApply }: RosterModalProps) {
   }
 
   function selectAll() {
-    setStaged(source.specialists.map((s) => s.name))
+    if (source) setStaged(source.specialists.map((s) => s.name))
+  }
+
+  if (!source) {
+    // Every cross-trained specialist has already been moved.
+    return (
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.27)', backdropFilter: 'blur(3px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000,
+        }}
+      >
+        <div onClick={(e) => e.stopPropagation()} className="modal-enter" style={{
+          background: css.surfacePage, borderRadius: 10, padding: 32,
+          maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12,
+        }}>
+          <span style={{ fontFamily: font.heading, fontSize: 16, fontWeight: 700, color: css.textPrimary }}>
+            No specialists left to transfer
+          </span>
+          <span style={{ fontFamily: font.body, fontSize: 13, color: css.textSecondary, lineHeight: 1.5 }}>
+            Every specialist cross-trained for {target} has already been moved in.
+          </span>
+          <button onClick={onClose} style={{
+            alignSelf: 'flex-end', height: 34, padding: '0 20px',
+            background: css.brand, border: 'none', borderRadius: 6,
+            fontFamily: font.body, fontSize: 12, fontWeight: 700,
+            color: 'var(--text-inverse)', cursor: 'pointer',
+          }}>
+            Close
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -754,23 +725,27 @@ export default function RosterModal({ onClose, onApply }: RosterModalProps) {
       <div
         onClick={(e) => e.stopPropagation()}
         className="modal-enter"
+        role="dialog"
+        aria-label={`Move specialists into ${target}`}
         style={{
           background: css.surfacePage, borderRadius: 10,
           padding: 48, width: 896, maxWidth: 'calc(100vw - 48px)',
           display: 'flex', flexDirection: 'column', gap: 20,
         }}
       >
-        <SummaryBar source={source} stagedCount={staged.length} />
+        <SummaryBar source={source} stagedCount={staged.length} target={target} targetCurrent={currentNames.length} />
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
           <LeftPanel
+            sourceQueues={sourceQueues}
             source={source}
             staged={staged}
             onToggle={toggle}
             onSelectAll={selectAll}
             onSelectSource={handleSelectSource}
+            target={target}
           />
-          <RightPanel staged={staged} onRemove={remove} />
+          <RightPanel staged={staged} onRemove={remove} target={target} currentNames={currentNames} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>

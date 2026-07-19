@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import RosterModal from '../components/RosterModal'
 import LedgerChart from '../components/LedgerChart'
+import Toast from '../components/Toast'
 import { useQueueContext } from '../QueueContext'
+import {
+  getPeriodData, getRiskLine, getWorkloads,
+  PERIOD_KEYS, type PeriodAlert, type PeriodChart, type PeriodData, type PeriodKey,
+} from '../data/queues'
 
 const css = {
   brand: 'var(--brand)',
@@ -33,9 +38,11 @@ function CaretDownIcon({ color }: { color?: string }) {
   )
 }
 
-function TrendUpIcon({ color }: { color: string }) {
+// Trend glyphs follow the metric's actual direction — an up-arrow beside a
+// falling number contradicts the reader's mental model.
+function TrendIcon({ color, trend }: { color: string; trend: 'up' | 'down' }) {
   return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: trend === 'down' ? 'scaleY(-1)' : undefined }}>
       <path d="M1 8L4 4.5L6.5 6.5L9 2" stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
@@ -62,11 +69,6 @@ function AlertCriticalIcon({ color }: { color: string }) {
 
 // ─── Header Bar ──────────────────────────────────────────────────────────────
 
-const queueRisk: Record<string, { label: string; type: 'danger' | 'info' }> = {
-  'Refinance':    { label: '47 loans approaching risk', type: 'info'   },
-  'Urgent Loan':  { label: '14 loans at risk',          type: 'danger' },
-}
-
 function HeaderBar({ queue, activeTab, onTabChange, customLabel, showDatePicker, onDatePickerApply, onDatePickerCancel }: {
   queue: string
   activeTab: string
@@ -76,8 +78,7 @@ function HeaderBar({ queue, activeTab, onTabChange, customLabel, showDatePicker,
   onDatePickerApply: (from: string, to: string) => void
   onDatePickerCancel: () => void
 }) {
-  const tabs = ['Real Time', '1d', 'Week', 'Month', 'Custom']
-  const risk = queueRisk[queue]
+  const risk = getRiskLine(queue)
   return (
     <div style={{
       background: css.surfacePage,
@@ -90,47 +91,45 @@ function HeaderBar({ queue, activeTab, onTabChange, customLabel, showDatePicker,
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{
+          <h1 style={{
             fontFamily: font.heading,
             fontWeight: 700,
             fontSize: 20,
             letterSpacing: '-0.08px',
             color: css.textPrimary,
+            margin: 0,
           }}>
             Queue Monitor
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '8px 10px' }}>
-            <span style={{
-              fontFamily: font.heading,
-              fontWeight: 600,
-              fontSize: 16,
-              letterSpacing: '-0.048px',
-              color: css.textTertiary,
-            }}>
-              {queue}
-            </span>
-            <CaretDownIcon color={css.textTertiary} />
-          </div>
-        </div>
-        {risk && (
+          </h1>
+          {/* Queue scope label — switch queues from Overview */}
           <span style={{
-            fontFamily: font.body,
-            fontSize: 11,
-            fontWeight: 500,
-            color: risk.type === 'danger' ? css.danger : css.info,
-            paddingLeft: 2,
+            fontFamily: font.heading,
+            fontWeight: 600,
+            fontSize: 16,
+            letterSpacing: '-0.048px',
+            color: css.textTertiary,
+            padding: '8px 10px',
           }}>
-            {risk.label}
+            {queue}
           </span>
-        )}
+        </div>
+        <span style={{
+          fontFamily: font.body,
+          fontSize: 11,
+          fontWeight: 500,
+          color: risk.type === 'danger' ? css.danger : css.info,
+          paddingLeft: 2,
+        }}>
+          {risk.label}
+        </span>
       </div>
 
-      <div style={{ position: 'relative', display: 'flex', height: 38 }}>
-        {tabs.map((tab, i) => {
+      <div style={{ position: 'relative', display: 'flex', height: 38 }} role="tablist" aria-label="Time range">
+        {PERIOD_KEYS.map((tab, i) => {
           const isActive = tab === activeTab
           const isRTTab = tab === 'Real Time'
           const isFirst = i === 0
-          const isLast = i === tabs.length - 1
+          const isLast = i === PERIOD_KEYS.length - 1
 
           const bg = isActive ? (isRTTab ? css.brand : css.surface) : css.surface
           const textColor = isActive ? (isRTTab ? css.surface : css.textSecondary) : css.textTertiary
@@ -139,9 +138,11 @@ function HeaderBar({ queue, activeTab, onTabChange, customLabel, showDatePicker,
           const displayLabel = (tab === 'Custom' && customLabel) ? customLabel : tab
 
           return (
-            <div
+            <button
               key={tab}
               onClick={() => onTabChange(tab)}
+              role="tab"
+              aria-selected={isActive}
               style={{
                 background: bg,
                 borderTop: `1px solid ${borderColor}`,
@@ -170,7 +171,7 @@ function HeaderBar({ queue, activeTab, onTabChange, customLabel, showDatePicker,
                 {displayLabel}
               </span>
               {isLast && <CaretDownIcon />}
-            </div>
+            </button>
           )
         })}
         {showDatePicker && (
@@ -270,7 +271,7 @@ function HistoricalBanner({ tab }: { tab: string }) {
         <path d="M7 4V7.5L9 9" stroke="#1B4079" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span style={{ fontFamily: font.body, fontSize: 12, fontWeight: 500, color: 'var(--info)' }}>
-        Viewing {tab} data · Actions unavailable in historical view
+        Viewing {tab} data · Staffing actions unavailable — loan details stay viewable
       </span>
     </div>
   )
@@ -284,6 +285,7 @@ type KpiCardProps = {
   value: string
   sub: string
   badge?: { text: string; variant: BadgeVariant }
+  trend: 'up' | 'down'
 }
 
 const badgeStyles: Record<BadgeVariant, { bg: string; color: string }> = {
@@ -292,7 +294,7 @@ const badgeStyles: Record<BadgeVariant, { bg: string; color: string }> = {
   none:    { bg: 'transparent', color: 'transparent' },
 }
 
-function KpiCard({ label, value, sub, badge }: KpiCardProps) {
+function KpiCard({ label, value, sub, badge, trend }: KpiCardProps) {
   const bv = badge?.variant ?? 'none'
   const bs = badgeStyles[bv]
   return (
@@ -346,7 +348,7 @@ function KpiCard({ label, value, sub, badge }: KpiCardProps) {
           {value}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <TrendUpIcon color={css.textTertiary} />
+          <TrendIcon color={css.textTertiary} trend={trend} />
           <span style={{ fontFamily: font.body, fontSize: 9, color: css.textTertiary }}>
             {sub}
           </span>
@@ -356,126 +358,11 @@ function KpiCard({ label, value, sub, badge }: KpiCardProps) {
   )
 }
 
-// ─── Period data ──────────────────────────────────────────────────────────────
-
-type ChartData = { xLabels: string[]; outflow: number[]; inflow: number[]; bannerText: string; bannerStat: string }
-type CapacityData = { load: number; gap: number }
-
-type PeriodConfig = {
-  kpis: KpiCardProps[]
-  chart: ChartData
-  alerts: AlertItem[]
-  capacity: CapacityData
-}
-
-const periodConfig: Record<string, PeriodConfig> = {
-  'Real Time': {
-    kpis: [
-      { label: 'Active Loans',      value: '2,341', sub: '+18 in last 15 min',        badge: { text: 'Above target', variant: 'warning' } },
-      { label: 'Process Time Avg.', value: '6.1 h', sub: 'Target 4.2h · +1.9h over', badge: { text: 'Breaching',    variant: 'danger'  } },
-      { label: 'Net Flow',          value: '-112',  sub: '+203 in · -91 out',         badge: { text: 'Backlogging',  variant: 'danger'  } },
-    ],
-    chart: {
-      xLabels: ['12a', '9a', '12p', '1p', '2p', '3p', 'Now'],
-      outflow: [110, 115, 120, 125, 128, 132, 140],
-      inflow:  [105, 115, 130, 148, 165, 185, 205],
-      bannerText: 'Backlog growing – Inflow has exceeded Outflow for 4 straight days',
-      bannerStat: '+112 net today',
-    },
-    alerts: [
-      { title: '14 loans within 5 days of closing',               body: 'Tighten closing threshold.',  variant: 'critical', cta: { label: 'See loan details', action: 'loans' } },
-      { title: 'Inflow outpacing outflow for 4 consecutive days',  body: 'Rebalance specialist load.', variant: 'critical', cta: { label: 'Reassign Staff', action: 'reassign' } },
-      { title: '2 specialists consistently idle',                  body: 'Review Roster assignments.', variant: 'warning',  cta: { label: 'Go to Roster',   action: 'roster'   } },
-    ],
-    capacity: { load: 130, gap: 45 },
-  },
-  '1d': {
-    kpis: [
-      { label: 'Active Loans',      value: '2,254', sub: '+12 from prior day',         badge: { text: 'Above target', variant: 'warning' } },
-      { label: 'Process Time Avg.', value: '5.9 h', sub: 'Target 4.2h · +1.7h over',  badge: { text: 'Breaching',    variant: 'danger'  } },
-      { label: 'Net Flow',          value: '-89',   sub: '+194 in · -105 out',          badge: { text: 'Backlogging',  variant: 'danger'  } },
-    ],
-    chart: {
-      xLabels: ['12a', '4a', '8a', '12p', '4p', '8p', '12a'],
-      outflow: [98, 102, 108, 115, 120, 118, 112],
-      inflow:  [95, 100, 108, 118, 135, 152, 165],
-      bannerText: 'Backlog grew – Inflow exceeded Outflow across the full day',
-      bannerStat: '+89 net yesterday',
-    },
-    alerts: [
-      { title: '11 loans were within 5 days of closing',           body: 'Closing threshold was under pressure.',    variant: 'critical' },
-      { title: 'Inflow outpaced outflow for 3 consecutive days',   body: 'Specialist load was imbalanced.',          variant: 'critical' },
-      { title: '3 specialists running below target load',          body: 'Idle capacity was not redistributed.',     variant: 'warning'  },
-    ],
-    capacity: { load: 122, gap: 37 },
-  },
-  'Week': {
-    kpis: [
-      { label: 'Active Loans',      value: '2,108', sub: 'Weekly avg · +233 vs last week', badge: { text: 'Above target', variant: 'warning' } },
-      { label: 'Process Time Avg.', value: '5.4 h', sub: 'Target 4.2h · +1.2h avg over',  badge: { text: 'Above target', variant: 'warning' } },
-      { label: 'Net Flow',          value: '-312',  sub: 'Cumulative this week',            badge: { text: 'Backlogging',  variant: 'danger'  } },
-    ],
-    chart: {
-      xLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      outflow: [95, 98, 102, 108, 114, 112, 118],
-      inflow:  [92, 112, 120, 126, 132, 130, 140],
-      bannerText: 'Weekly backlog – Inflow exceeded Outflow across 6 of 7 days',
-      bannerStat: '+312 net this week',
-    },
-    alerts: [
-      { title: 'Backlog grew by 312 loans over 7 days',            body: 'Sustained inflow pressure building.',      variant: 'critical' },
-      { title: 'Process time averaged 1.2h above target',          body: 'Specialist throughput below required pace.',variant: 'critical' },
-      { title: 'Peak inflow on Tuesday — 241 loans in one day',    body: 'No surge capacity was activated.',          variant: 'warning'  },
-    ],
-    capacity: { load: 108, gap: 23 },
-  },
-  'Month': {
-    kpis: [
-      { label: 'Active Loans',      value: '1,847', sub: 'Monthly avg · trending up',      badge: { text: 'Above target', variant: 'warning' } },
-      { label: 'Process Time Avg.', value: '4.9 h', sub: 'Target 4.2h · +0.7h avg over',  badge: { text: 'Above target', variant: 'warning' } },
-      { label: 'Net Flow',          value: '-891',  sub: 'Cumulative this month',           badge: { text: 'Backlogging',  variant: 'danger'  } },
-    ],
-    chart: {
-      xLabels: ['Mar 1', 'Mar 8', 'Mar 15', 'Mar 22', 'Mar 28'],
-      outflow: [88, 92, 98, 104, 112],
-      inflow:  [85, 92, 100, 114, 128],
-      bannerText: 'Monthly trend – Inflow exceeded Outflow in 19 of 28 days',
-      bannerStat: '+891 net this month',
-    },
-    alerts: [
-      { title: 'Cumulative backlog reached 891 loans this month',  body: 'Monthly capacity gap widening.',            variant: 'warning'  },
-      { title: 'Process time trended upward all month',            body: 'Now 0.7h above monthly target avg.',        variant: 'warning'  },
-      { title: 'Inflow exceeded outflow in 19 of 28 days',         body: 'Structural imbalance — not a spike.',       variant: 'warning'  },
-    ],
-    capacity: { load: 94, gap: 9 },
-  },
-  'Custom': {
-    kpis: [
-      { label: 'Active Loans',      value: '2,041', sub: 'Avg over selected range',        badge: { text: 'Above target', variant: 'warning' } },
-      { label: 'Process Time Avg.', value: '5.2 h', sub: 'Target 4.2h · +1.0h avg over',  badge: { text: 'Above target', variant: 'warning' } },
-      { label: 'Net Flow',          value: '-544',  sub: 'Cumulative over range',           badge: { text: 'Backlogging',  variant: 'danger'  } },
-    ],
-    chart: {
-      xLabels: ['Mar 1', 'Mar 8', 'Mar 15', 'Mar 22', 'Mar 28'],
-      outflow: [90, 95, 100, 108, 115],
-      inflow:  [88, 96, 106, 118, 132],
-      bannerText: 'Selected range – Inflow exceeded Outflow across most of the period',
-      bannerStat: '+544 net over range',
-    },
-    alerts: [
-      { title: 'Backlog accumulated 544 loans over selected range', body: 'Inflow consistently above outflow.',        variant: 'warning'  },
-      { title: 'Process time averaged 1.0h above target',          body: 'Throughput gap present throughout range.',   variant: 'warning'  },
-      { title: 'Load imbalance detected in 2 specialists',         body: 'Persistent idle capacity not redeployed.',   variant: 'warning'  },
-    ],
-    capacity: { load: 100, gap: 15 },
-  },
-}
-
 // ─── Chart ────────────────────────────────────────────────────────────────────
 
-function InflowOutflowChart({ data }: { data: ChartData }) {
-  const { xLabels, outflow, inflow, bannerText, bannerStat } = data
-  const target = xLabels.map(() => 108)
+function InflowOutflowChart({ data }: { data: PeriodChart }) {
+  const { xLabels, outflow, inflow, target, bannerText, bannerStat, bannerTone } = data
+  const danger = bannerTone === 'danger'
 
   return (
     <div>
@@ -492,18 +379,18 @@ function InflowOutflowChart({ data }: { data: ChartData }) {
 
       <div style={{
         marginTop: 12,
-        background: 'rgba(206,67,10,0.06)',
-        border: `1px solid rgba(206,67,10,0.2)`,
+        background: danger ? 'rgba(206,67,10,0.06)' : 'var(--info-light)',
+        border: danger ? '1px solid rgba(206,67,10,0.2)' : '1px solid #AFBCD0',
         borderRadius: 8,
         padding: '8px 12px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 500, color: css.danger }}>
+        <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 500, color: danger ? css.danger : css.info }}>
           {bannerText}
         </span>
-        <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 500, color: css.danger, whiteSpace: 'nowrap' }}>
+        <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 500, color: danger ? css.danger : css.info, whiteSpace: 'nowrap' }}>
           {bannerStat}
         </span>
       </div>
@@ -513,22 +400,13 @@ function InflowOutflowChart({ data }: { data: ChartData }) {
 
 // ─── Alerts Card ─────────────────────────────────────────────────────────────
 
-type AlertItem = {
-  title: string
-  body: string
-  variant: 'critical' | 'warning'
-  cta?: { label: string; action: 'reassign' | 'roster' | 'loans' }
-}
-
-
 const alertVariantStyles = {
   critical: { bg: 'var(--danger-light)', border: 'var(--danger-mid)', titleColor: css.danger  },
   warning:  { bg: 'var(--warning-light)', border: 'var(--warning-mid)', titleColor: css.warning },
 }
 
-function AlertsCard({ onReassign, onRoster, onLoans, transferred, isRealTime, periodAlerts, chartData }: { onReassign: () => void; onRoster: () => void; onLoans: () => void; transferred: string[]; isRealTime: boolean; periodAlerts: AlertItem[]; chartData: ChartData }) {
+function AlertsCard({ onReassign, onRoster, onLoans, transferred, isRealTime, periodAlerts, chartData }: { onReassign: () => void; onRoster: () => void; onLoans: () => void; transferred: string[]; isRealTime: boolean; periodAlerts: PeriodAlert[]; chartData: PeriodChart }) {
   const staffActioned = transferred.length > 0
-  const items = periodAlerts
 
   return (
     <div style={{
@@ -545,7 +423,7 @@ function AlertsCard({ onReassign, onRoster, onLoans, transferred, isRealTime, pe
       </span>
 
 
-      {items.map((a) => {
+      {periodAlerts.map((a) => {
         const isResolved = a.cta?.action === 'reassign' && staffActioned
         const s = alertVariantStyles[a.variant]
         const ctaColor = a.variant === 'critical' ? css.danger : css.warning
@@ -724,6 +602,7 @@ function RankingsCard() {
       {/* Header — always visible, click to toggle */}
       <button
         onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%',
@@ -790,30 +669,7 @@ function RankingsCard() {
 
 // ─── Capacity Card ────────────────────────────────────────────────────────────
 
-type Specialist = { name: string; loans: string; fill: number; queue: string }
-
-const allSpecialists: Specialist[] = [
-  { name: 'Simone Adeyemi', loans: '148 loans', fill: 0.74, queue: 'Refinance' },
-  { name: 'Theo Bateman',   loans: '141 loans', fill: 0.68, queue: 'Refinance' },
-  { name: 'Steph Curry',    loans: '130 loans', fill: 0.62, queue: 'Refinance' },
-  { name: 'Draymond Green', loans: '121 loans', fill: 0.58, queue: 'Refinance' },
-  { name: 'Jordan Marks',   loans: '112 loans', fill: 0.54, queue: 'Refinance' },
-  { name: 'Chris Navarro',  loans: '108 loans', fill: 0.52, queue: 'Refinance' },
-  { name: 'Priya Okonkwo',  loans: '98 loans',  fill: 0.47, queue: 'Refinance' },
-  { name: 'Yemi Osei',      loans: '91 loans',  fill: 0.44, queue: 'Refinance' },
-  { name: 'Dana Reyes',     loans: '86 loans',  fill: 0.41, queue: 'Refinance' },
-  { name: 'Marcus Webb',    loans: '80 loans',  fill: 0.38, queue: 'Refinance' },
-  { name: 'Aaliya Frost',   loans: '76 loans',  fill: 0.36, queue: 'Refinance' },
-  { name: 'Ben Okafor',     loans: '72 loans',  fill: 0.34, queue: 'Refinance' },
-  { name: 'Carmen Diaz',    loans: '68 loans',  fill: 0.32, queue: 'Refinance' },
-  { name: 'Devon Park',     loans: '63 loans',  fill: 0.30, queue: 'Refinance' },
-  { name: 'Elise Tran',     loans: '59 loans',  fill: 0.28, queue: 'Refinance' },
-  { name: 'Felix Grant',    loans: '54 loans',  fill: 0.26, queue: 'Refinance' },
-  { name: 'Grace Yuen',     loans: '48 loans',  fill: 0.23, queue: 'Refinance' },
-  { name: 'Hassan Ali',     loans: '42 loans',  fill: 0.20, queue: 'Refinance' },
-]
-
-function SpecialistRow({ name, loans, fill, isNew = false }: { name: string; loans: string; fill: number; isNew?: boolean }) {
+function SpecialistRow({ name, loans, fill, queue, isNew = false }: { name: string; loans: string; fill: number; queue: string; isNew?: boolean }) {
   return (
     <div className={isNew ? 'fade-up' : undefined} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -841,18 +697,19 @@ function SpecialistRow({ name, loans, fill, isNew = false }: { name: string; loa
       </div>
       <ProgressBar fill={isNew ? 0.05 : fill} />
       <span style={{ fontFamily: font.body, fontSize: 12, fontWeight: 500, color: css.textSecondary }}>
-        Assigned: Refinance
+        Assigned: {queue}
       </span>
     </div>
   )
 }
 
-function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { onReassign: () => void; transferred: string[]; isRealTime: boolean; capacityData: CapacityData }) {
+function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign, capacityData }: { queue: string; onReassign: () => void; transferred: string[]; isRealTime: boolean; canReassign: boolean; capacityData: PeriodData['capacity'] }) {
   const [search, setSearch] = useState('')
-  const activeCount = 18 + transferred.length
+  const workloads = getWorkloads(queue)
+  const activeCount = workloads.length + transferred.length
   const capacityGap = Math.max(0, capacityData.gap - transferred.length * 5)
   const gapAtRisk = capacityGap > 30
-  const filtered = allSpecialists.filter((s) =>
+  const filtered = workloads.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -873,7 +730,7 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary }}>{activeCount} active</span>
-          {isRealTime && (
+          {isRealTime && canReassign && (
             <button
               onClick={onReassign}
               style={{
@@ -894,7 +751,7 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
         {[
           { label: 'Queue load / Specialist', value: `${capacityData.load}`, danger: false },
           { label: 'Target load / Specialist', value: '85',                  danger: false },
-          { label: 'Capacity gap',             value: `+${capacityGap}`,     danger: gapAtRisk },
+          { label: 'Capacity gap',             value: `${capacityGap > 0 ? '+' : ''}${capacityGap}`, danger: gapAtRisk },
         ].map(({ label, value, danger }, i) => (
           <div
             key={label}
@@ -952,6 +809,7 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name..."
+          aria-label="Search specialists by name"
           style={{
             border: 'none', background: 'transparent', outline: 'none',
             fontFamily: font.body, fontSize: 11, color: css.textPrimary, width: '100%',
@@ -960,6 +818,7 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
         {search && (
           <button
             onClick={() => setSearch('')}
+            aria-label="Clear search"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -983,12 +842,12 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
         >
           {/* NEW specialists always at top */}
           {transferred.map((name) => (
-            <SpecialistRow key={`new-${name}`} name={name} loans="" fill={0} isNew />
+            <SpecialistRow key={`new-${name}`} name={name} loans="" fill={0} queue={queue} isNew />
           ))}
           {/* Existing list filtered by search */}
           {filtered.length > 0
             ? filtered.map((s) => (
-                <SpecialistRow key={s.name} name={s.name} loans={s.loans} fill={s.fill} />
+                <SpecialistRow key={s.name} name={s.name} loans={`${s.loans} loans`} fill={s.fill} queue={queue} />
               ))
             : (
               <span style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary, padding: '4px 0' }}>
@@ -1014,56 +873,26 @@ function CapacityCard({ onReassign, transferred, isRealTime, capacityData }: { o
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-function Toast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  return (
-    <div className="toast-enter" style={{
-      position: 'fixed',
-      bottom: 32,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      zIndex: 2000,
-      background: 'var(--text-primary)',
-      borderRadius: 8,
-      padding: '10px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
-      whiteSpace: 'nowrap',
-    }}>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="6.5" fill="#629460" />
-        <path d="M5 8L7 10L11 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--text-inverse)' }}>
-        {message}
-      </span>
-      <button
-        onClick={onDismiss}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 4, display: 'flex', alignItems: 'center' }}
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-          <path d="M2 2L8 8M8 2L2 8" stroke="rgba(255,255,255,0.5)" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
-      </button>
-    </div>
-  )
-}
-
 export default function QueueMonitor() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { markActioned } = useQueueContext()
+  const { markActioned, transfers, applyTransfer, monitorPrefs, setMonitorPrefs } = useQueueContext()
   const queue: string = (location.state as { queue?: string } | null)?.queue ?? 'Refinance'
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [transferred, setTransferred] = useState<string[]>([])
-  const [activeTab, setActiveTab] = useState('Real Time')
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [customLabel, setCustomLabel] = useState<string | null>(null)
-  const isRealTime = activeTab === 'Real Time'
 
-  const period = periodConfig[activeTab] ?? periodConfig['Custom']
+  // Time-range selection lives in context so leaving for a drill-down and
+  // coming back doesn't reset it.
+  const prefs = monitorPrefs[queue] ?? { activeTab: 'Real Time', customLabel: null }
+  const activeTab = prefs.activeTab
+  const customLabel = prefs.customLabel
+  const isRealTime = activeTab === 'Real Time'
+  // Transfers target Refinance — that's where the roster and cross-training data live.
+  const canReassign = queue === 'Refinance'
+  const transferred = canReassign ? transfers : []
+
+  const period = getPeriodData(queue, (PERIOD_KEYS as string[]).includes(activeTab) ? activeTab as PeriodKey : 'Custom')
 
   function formatDate(iso: string) {
     const d = new Date(iso)
@@ -1075,19 +904,18 @@ export default function QueueMonitor() {
       setShowDatePicker(true)
     } else {
       setShowDatePicker(false)
-      setActiveTab(tab)
+      setMonitorPrefs(queue, { activeTab: tab, customLabel })
     }
   }
 
   function handleDateApply(from: string, to: string) {
     setShowDatePicker(false)
-    setActiveTab('Custom')
-    setCustomLabel(`${formatDate(from)} – ${formatDate(to)}`)
+    setMonitorPrefs(queue, { activeTab: 'Custom', customLabel: `${formatDate(from)} – ${formatDate(to)}` })
   }
 
   function handleApply(count: number, source: string, names: string[]) {
     setShowModal(false)
-    setTransferred((prev) => [...prev, ...names])
+    applyTransfer(names)
     markActioned(queue)
     setToast(`${count} specialist${count !== 1 ? 's' : ''} moved from ${source} to ${queue}`)
     setTimeout(() => setToast(null), 4000)
@@ -1117,13 +945,14 @@ export default function QueueMonitor() {
           <AlertsCard onReassign={() => setShowModal(true)} onRoster={() => navigate('/roster')} onLoans={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })} transferred={transferred} isRealTime={isRealTime} periodAlerts={period.alerts} chartData={period.chart} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <CapacityCard onReassign={() => setShowModal(true)} transferred={transferred} isRealTime={isRealTime} capacityData={period.capacity} />
+          <CapacityCard queue={queue} onReassign={() => setShowModal(true)} transferred={transferred} isRealTime={isRealTime} canReassign={canReassign} capacityData={period.capacity} />
           <RankingsCard />
         </div>
       </div>
 
       {showModal && (
         <RosterModal
+          target={queue}
           onClose={() => setShowModal(false)}
           onApply={handleApply}
         />

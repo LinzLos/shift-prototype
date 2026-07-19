@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { getLoans, LOAN_STAGES } from '../data/queues'
 
 const css = {
   brand: 'var(--brand)',
@@ -55,51 +56,6 @@ function SortArrow({ dir }: { dir: 'asc' | 'desc' }) {
   )
 }
 
-// ─── Mock loan data ───────────────────────────────────────────────────────────
-
-type Loan = {
-  id: string
-  borrower: string
-  daysToClose: number
-  amount: number
-  stage: string
-  specialist: string
-}
-
-const STAGES = ['Clear to Close', 'Final Review', 'Underwriting', 'Docs Out', 'Conditional Approval']
-const SPECIALISTS = [
-  'Simone Adeyemi', 'Theo Bateman', 'Steph Curry', 'Draymond Green', 'Jordan Marks',
-  'Chris Navarro', 'Priya Okonkwo', 'Yemi Osei', 'Dana Reyes', 'Marcus Webb',
-]
-const BORROWERS = [
-  'Amara Ng', 'Liam Roy', 'Sofia Diaz', 'Noah Khan', 'Mia Park', 'Ethan Cole', 'Ava Brooks',
-  'Lucas Reed', 'Isla Moreno', 'Owen Hart', 'Zara Patel', 'Leo Fischer', 'Nina Walsh', 'Caleb Stone',
-  'Ruby Tan', 'Eli Banks', 'Maya Frost', 'Jonah West', 'Iris Lund', 'Theo Vance', 'Lena Cruz',
-  'Asher Quinn', 'Vera Holt', 'Milo Day', 'Esme Cardoza', 'Felix Wynn', 'Cora Bishop', 'Hugo Maris',
-  'Daisy Lin', 'Ari Solem', 'Nora Beck', 'Sam Iyer', 'Greta Voss', 'Reuben Ode', 'Talia Mensah',
-  'Dion Park', 'Petra Falk', 'Omar Reza', 'Beth Calder', 'Niko Sato', 'Vivian Ross', 'Hana Oduya',
-  'Cyrus Bell', 'Maren Wolfe', 'Idris Khan', 'Bea Conti', 'Soren Lund', 'Faye Adler', 'Rhys Okafor',
-  'Lila Senn', 'Knox Reyes', 'Opal Vega', 'Ravi Mehta', 'June Halloran', 'Dane Whitlock', 'Yuki Mori',
-  'Pearl Agu', 'Ezra Tobin', 'Nadia Ruiz', 'Cole Hammond', 'Vesna Petrova', 'Tariq Bello', 'Lottie Frey',
-]
-
-// Deterministic generator — first 14 loans land inside 5 days to close.
-const LOANS: Loan[] = BORROWERS.map((borrower, i) => {
-  const daysToClose = i < 14 ? (i % 5) + 1 : ((i * 7) % 26) + 6 // 1–5 for first 14, else 6–31
-  const amount = 215000 + ((i * 41737) % 540000)
-  const stage = i < 14
-    ? (i % 2 === 0 ? 'Clear to Close' : 'Final Review')
-    : STAGES[(i * 3) % STAGES.length]
-  return {
-    id: `RF-${4800 + i * 13}`,
-    borrower,
-    daysToClose,
-    amount: Math.round(amount / 1000) * 1000,
-    stage,
-    specialist: SPECIALISTS[i % SPECIALISTS.length],
-  }
-})
-
 function formatAmount(n: number) {
   return `$${(n / 1000).toFixed(0)}k`
 }
@@ -154,6 +110,10 @@ export default function Loans() {
   const [sortKey, setSortKey] = useState<'days' | 'amount'>('days')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
+  // Loans derive from the queue that opened this drill-down, so the counts
+  // match the alert that linked here.
+  const LOANS = useMemo(() => getLoans(queue), [queue])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     const rows = LOANS.filter((l) => {
@@ -166,7 +126,7 @@ export default function Loans() {
     return rows.sort((a, b) =>
       sortKey === 'days' ? (a.daysToClose - b.daysToClose) * dir : (a.amount - b.amount) * dir
     )
-  }, [search, dayBucket, stage, sortKey, sortDir])
+  }, [LOANS, search, dayBucket, stage, sortKey, sortDir])
 
   function toggleSort(key: 'days' | 'amount') {
     if (sortKey === key) {
@@ -266,7 +226,7 @@ export default function Loans() {
           <span style={{ fontFamily: font.body, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: css.textTertiary, marginRight: 2 }}>
             Stage
           </span>
-          {STAGES.map((s) => (
+          {LOAN_STAGES.map((s) => (
             <Chip
               key={s}
               label={s}
@@ -280,7 +240,7 @@ export default function Loans() {
         {/* Count + clear */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontFamily: font.body, fontSize: 12, color: css.textSecondary }}>
-            Showing <strong style={{ color: css.textPrimary }}>{filtered.length}</strong> of {LOANS.length} in {queue}
+            Showing <strong style={{ color: css.textPrimary }}>{filtered.length}</strong> of the {LOANS.length} loans closing soonest in {queue}
           </span>
           {hasActiveFilters && (
             <button

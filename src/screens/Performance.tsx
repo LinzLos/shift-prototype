@@ -1,4 +1,7 @@
 import LedgerChart from '../components/LedgerChart'
+import LiveIndicator from '../components/LiveIndicator'
+import { useQueueContext } from '../QueueContext'
+import { assignedTo, team, DAILY_TARGET } from '../data/team'
 
 const css = {
   brand: 'var(--brand)',
@@ -19,37 +22,11 @@ const font = {
   body: "'DM Sans', sans-serif",
 }
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-function CaretDownIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M3 4.5L6 7.5L9 4.5" stroke={css.textTertiary} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function SortIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M2 4h8M3.5 6.5h5M5 9h2" stroke={css.textTertiary} strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function ColumnsIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <rect x="1" y="2" width="4" height="8" rx="1" stroke={css.textTertiary} strokeWidth="1.1" />
-      <rect x="7" y="2" width="4" height="8" rx="1" stroke={css.textTertiary} strokeWidth="1.1" />
-    </svg>
-  )
-}
+const TARGET_HANDLE_HOURS = 4.2
 
 // ─── Header Bar ───────────────────────────────────────────────────────────────
 
 function HeaderBar() {
-  const tabs = ['Real Time', '1d', 'Week', 'Month', 'Custom']
   return (
     <div style={{
       background: css.surfacePage,
@@ -71,62 +48,19 @@ function HeaderBar() {
         }}>
           Performance
         </h1>
-        <button style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          background: css.surface,
-          border: `0.8px solid ${css.border}`,
-          borderRadius: 6,
-          padding: '4px 10px',
-          cursor: 'pointer',
+        {/* Queue scope label — performance stats are Refinance-scoped in this prototype */}
+        <span style={{
           fontFamily: font.body,
           fontSize: 12,
           color: css.textSecondary,
           fontWeight: 500,
         }}>
           Refinance
-          <CaretDownIcon />
-        </button>
+        </span>
       </div>
 
-      <div style={{ display: 'flex', height: 38 }}>
-        {tabs.map((tab, i) => {
-          const isActive = tab === 'Real Time'
-          const isFirst = i === 0
-          const isLast = i === tabs.length - 1
-          return (
-            <div
-              key={tab}
-              style={{
-                background: isActive ? css.brand : css.surface,
-                borderTop: `0.8px solid ${css.border}`,
-                borderBottom: `0.8px solid ${css.border}`,
-                borderLeft: isFirst ? `0.8px solid ${css.border}` : 'none',
-                borderRight: `0.8px solid ${css.border}`,
-                borderRadius: isFirst ? '4px 0 0 4px' : isLast ? '0 4px 4px 0' : 0,
-                padding: '0 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{
-                fontFamily: font.body,
-                fontSize: 12,
-                fontWeight: isActive ? 700 : 400,
-                color: isActive ? css.surface : css.textTertiary,
-                letterSpacing: '-0.012px',
-                whiteSpace: 'nowrap',
-              }}>
-                {tab}
-              </span>
-              {isLast && <CaretDownIcon />}
-            </div>
-          )
-        })}
-      </div>
+      {/* Today's stats only — no historical performance data is kept here */}
+      <LiveIndicator tooltipBody={<>Showing today's stats. Use <strong style={{ color: css.textPrimary }}>Queue Monitor</strong> for time ranges.</>} />
     </div>
   )
 }
@@ -186,11 +120,14 @@ function KpiCard({ label, value, sub, subColor }: KpiCardProps) {
 
 // ─── Throughput Chart ─────────────────────────────────────────────────────────
 
-function ThroughputChart() {
+function ThroughputChart({ completedToday, handleAvg }: { completedToday: number; handleAvg: number }) {
   const xLabels = ['12a', '9a', '12p', '1p', '2p', '3p', 'Now']
-  const loansData  = [10, 30, 60, 70, 80, 88, 91]   // left axis (loans completed)
-  const handleData = [180, 160, 120, 100, 95, 90, 87] // right axis (handle time, min)
-  const targetData = [0, 20, 45, 52, 62, 75, 91]    // left axis (target pace)
+  // Cumulative completions through the day, ending at today's total.
+  const loansData = [0.11, 0.33, 0.66, 0.77, 0.88, 0.97, 1].map((f) => Math.round(f * completedToday))
+  // Handle time per loan (hours) declining toward the current average.
+  const handleData = [1.13, 1.11, 1.08, 1.05, 1.03, 1.02, 1].map((f) => Math.round(f * handleAvg * 10) / 10)
+  const targetData = [0, 0.22, 0.49, 0.57, 0.68, 0.82, 1].map((f) => Math.round(f * completedToday))
+  const improvedPct = Math.round(((handleData[1] - handleData[6]) / handleData[1]) * 100)
 
   return (
     <div style={{
@@ -213,10 +150,10 @@ function ThroughputChart() {
         viewW={600}
         viewH={170}
         left={{ min: 0, max: 120, ticks: [0, 40, 80, 120] }}
-        right={{ min: 0, max: 240, ticks: [0, 80, 160, 240], format: (v) => `${v}m` }}
+        right={{ min: 0, max: 12, ticks: [0, 4, 8, 12], format: (v) => `${v}h` }}
         series={[
           { label: 'Loans completed',  values: loansData,  color: 'var(--chart-blue)', variant: 'area' },
-          { label: 'Handle time avg.', values: handleData, color: 'var(--text-primary)', variant: 'dashed', axis: 'right', format: (v) => `${v}m` },
+          { label: 'Handle time avg.', values: handleData, color: 'var(--text-primary)', variant: 'dashed', axis: 'right', format: (v) => `${v}h` },
           { label: 'Target pace',      values: targetData, color: 'var(--border-strong)', variant: 'reference' },
         ]}
       />
@@ -238,7 +175,7 @@ function ThroughputChart() {
           <circle cx="7" cy="9.5" r="0.6" fill="#1b4079" />
         </svg>
         <span style={{ fontFamily: font.body, fontSize: 12, color: 'var(--info)', lineHeight: 1.5 }}>
-          Handle time has improved 12% since 9am — team is on track to meet today's target if current pace holds.
+          Handle time has improved {improvedPct}% since 9am — team is on track to meet today's target if current pace holds.
         </span>
       </div>
     </div>
@@ -247,52 +184,35 @@ function ThroughputChart() {
 
 // ─── Performance Table ────────────────────────────────────────────────────────
 
-type Specialist = {
-  name: string
-  completed: number
-  handleDays: number
-  vsTarget: number
-}
-
-const specialists: Specialist[] = [
-  { name: 'Simone Adeyemi', completed: 14, handleDays: 3,  vsTarget: 61 },
-  { name: 'Theo Bateman',   completed: 11, handleDays: 5,  vsTarget: 52 },
-  { name: 'Steph Curry',    completed: 18, handleDays: 10, vsTarget: 47 },
-  { name: 'Draymond Green', completed: 4,  handleDays: 12, vsTarget: 33 },
-  { name: 'Jordan Marks',   completed: 3,  handleDays: 18, vsTarget: 28 },
-  { name: 'Chris Navarro',  completed: 16, handleDays: 7,  vsTarget: 55 },
-  { name: 'Chris Okonkwo',  completed: 12, handleDays: 22, vsTarget: 19 },
-  { name: 'Chris Osei',     completed: 13, handleDays: 9,  vsTarget: 31 },
-  { name: 'Dana Reyes',     completed: 5,  handleDays: 25, vsTarget: 14 },
-  { name: 'Marcus Webb',    completed: 3,  handleDays: 11, vsTarget: 44 },
-]
-
-function HandlePill({ days }: { days: number }) {
+function HandlePill({ hours }: { hours: number | null }) {
   return (
     <span style={{
       display: 'inline-flex',
       alignItems: 'center',
-      background: 'var(--warning-light)',
-      border: '1px solid var(--warning-mid)',
+      background: hours == null ? css.surfacePage : 'var(--warning-light)',
+      border: hours == null ? `1px solid ${css.border}` : '1px solid var(--warning-mid)',
       borderRadius: 100,
       padding: '2px 8px',
       fontFamily: font.body,
       fontSize: 11,
       fontWeight: 500,
-      color: 'var(--warning)',
+      color: hours == null ? css.textTertiary : 'var(--warning)',
       whiteSpace: 'nowrap',
     }}>
-      {days}d
+      {hours == null ? '—' : `${hours}h`}
     </span>
   )
 }
 
-function VsTargetBar({ value }: { value: number }) {
-  const color = value >= 50 ? css.brand : value >= 30 ? css.warning : css.danger
+function VsTargetBar({ value }: { value: number | null }) {
+  if (value == null) {
+    return <span style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary }}>Just assigned</span>
+  }
+  const color = value >= 100 ? css.brand : value >= 50 ? css.warning : css.danger
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <div style={{ width: 80, height: 4, background: css.surfaceMuted, borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 2 }} />
+        <div style={{ width: `${Math.min(value, 100)}%`, height: '100%', background: color, borderRadius: 2 }} />
       </div>
       <span style={{ fontFamily: font.body, fontSize: 12, color: css.textSecondary, minWidth: 32 }}>
         {value}%
@@ -301,14 +221,18 @@ function VsTargetBar({ value }: { value: number }) {
   )
 }
 
-function PerformanceTable() {
-  const colStyle = (flex?: number, minWidth?: number): React.CSSProperties => ({
-    flex: flex ?? 1,
-    minWidth,
-    fontFamily: font.body,
-    fontSize: 12,
-    color: css.textSecondary,
-  })
+type PerfRow = {
+  name: string
+  completed: number | null
+  handleHours: number | null
+  vsTarget: number | null
+}
+
+function PerformanceTable({ rows }: { rows: PerfRow[] }) {
+  const th: React.CSSProperties = {
+    fontFamily: font.body, fontSize: 11, fontWeight: 600,
+    color: css.textTertiary, letterSpacing: '0.5px', textTransform: 'uppercase',
+  }
 
   return (
     <div style={{
@@ -325,47 +249,22 @@ function PerformanceTable() {
         borderBottom: `1px solid ${css.border}`,
         gap: 16,
       }}>
-        <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 600, color: css.textTertiary, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-            Specialist
-          </span>
-          <SortIcon />
+        <div style={{ flex: 2 }}>
+          <span style={th}>Specialist</span>
         </div>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 600, color: css.textTertiary, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-            Completed
-          </span>
+        <div style={{ flex: 1 }}>
+          <span style={th}>Completed</span>
         </div>
         <div style={{ flex: 1.5 }}>
-          <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 600, color: css.textTertiary, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-            Handle time
-          </span>
+          <span style={th}>Handle time</span>
         </div>
         <div style={{ flex: 2 }}>
-          <span style={{ fontFamily: font.body, fontSize: 11, fontWeight: 600, color: css.textTertiary, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-            vs. Target
-          </span>
+          <span style={th}>vs. Target ({DAILY_TARGET}/day)</span>
         </div>
-        <button style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          background: css.surfaceMuted,
-          border: `0.8px solid ${css.border}`,
-          borderRadius: 6,
-          padding: '4px 10px',
-          cursor: 'pointer',
-          fontFamily: font.body,
-          fontSize: 11,
-          color: css.textSecondary,
-        }}>
-          <ColumnsIcon />
-          Columns
-        </button>
       </div>
 
       {/* Table rows */}
-      {specialists.map((s, i) => (
+      {rows.map((s, i) => (
         <div
           key={s.name}
           style={{
@@ -373,7 +272,7 @@ function PerformanceTable() {
             alignItems: 'center',
             padding: '12px 20px',
             gap: 16,
-            borderBottom: i < specialists.length - 1 ? `1px solid ${css.border}` : 'none',
+            borderBottom: i < rows.length - 1 ? `1px solid ${css.border}` : 'none',
             background: i % 2 === 0 ? css.surface : css.surfacePage,
           }}
         >
@@ -382,13 +281,13 @@ function PerformanceTable() {
               {s.name}
             </span>
           </div>
-          <div style={colStyle(1)}>
+          <div style={{ flex: 1 }}>
             <span style={{ fontFamily: font.heading, fontSize: 16, fontWeight: 700, color: css.textPrimary }}>
-              {s.completed}
+              {s.completed == null ? '—' : s.completed}
             </span>
           </div>
           <div style={{ flex: 1.5 }}>
-            <HandlePill days={s.handleDays} />
+            <HandlePill hours={s.handleHours} />
           </div>
           <div style={{ flex: 2 }}>
             <VsTargetBar value={s.vsTarget} />
@@ -400,25 +299,10 @@ function PerformanceTable() {
       <div style={{
         padding: '12px 20px',
         borderTop: `1px solid ${css.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
       }}>
         <span style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary }}>
-          Showing 10 of 14
+          Showing all {rows.length} specialists on Refinance
         </span>
-        <button style={{
-          fontFamily: font.body,
-          fontSize: 12,
-          fontWeight: 600,
-          color: css.brand,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: 0,
-        }}>
-          View all
-        </button>
       </div>
     </div>
   )
@@ -427,6 +311,30 @@ function PerformanceTable() {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Performance() {
+  const { transfers } = useQueueContext()
+  const members = assignedTo('Refinance')
+
+  // Every number below is computed from the same team data the table renders,
+  // so the KPIs can't disagree with the rows.
+  const completedToday = members.reduce((n, m) => n + m.completedToday, 0)
+  const handleAvg = Math.round((members.reduce((n, m) => n + m.handleHours, 0) / members.length) * 10) / 10
+  const onTarget = members.filter((m) => m.completedToday >= DAILY_TARGET).length
+  const teamTargetPct = Math.round((onTarget / members.length) * 100)
+
+  const rows: PerfRow[] = [
+    // Transferred specialists show up immediately, with no stats yet.
+    ...transfers
+      .map((name) => team.find((m) => m.name === name))
+      .filter((m): m is NonNullable<typeof m> => !!m)
+      .map((m) => ({ name: m.name, completed: null, handleHours: null, vsTarget: null })),
+    ...members.map((m) => ({
+      name: m.name,
+      completed: m.completedToday,
+      handleHours: m.handleHours,
+      vsTarget: Math.round((m.completedToday / DAILY_TARGET) * 100),
+    })),
+  ]
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HeaderBar />
@@ -435,20 +343,20 @@ export default function Performance() {
       <div style={{ display: 'flex', gap: 12 }}>
         <KpiCard
           label="Loans Completed"
-          value="91"
+          value={`${completedToday}`}
           sub="+14 vs yesterday"
           subColor={css.brand}
         />
         <KpiCard
           label="Handle Time Avg."
-          value="6.1h"
-          sub="Target 4.2h"
-          subColor={css.danger}
+          value={`${handleAvg}h`}
+          sub={`Target ${TARGET_HANDLE_HOURS}h`}
+          subColor={handleAvg > TARGET_HANDLE_HOURS ? css.danger : css.brand}
         />
         <KpiCard
           label="Team Target"
-          value="61%"
-          sub="8 of 14 members on target"
+          value={`${teamTargetPct}%`}
+          sub={`${onTarget} of ${members.length} members on target`}
         />
         <KpiCard
           label="Idle Time Avg."
@@ -464,8 +372,8 @@ export default function Performance() {
         />
       </div>
 
-      <ThroughputChart />
-      <PerformanceTable />
+      <ThroughputChart completedToday={completedToday} handleAvg={handleAvg} />
+      <PerformanceTable rows={rows} />
     </div>
   )
 }

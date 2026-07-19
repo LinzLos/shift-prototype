@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueueContext } from '../QueueContext'
+import LiveIndicator from '../components/LiveIndicator'
+import { queues, categories, type QueueDef } from '../data/queues'
 
 const css = {
   brand: 'var(--brand)',
@@ -32,101 +34,15 @@ function SearchIcon() {
   )
 }
 
-function InfoIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <circle cx="6.5" cy="6.5" r="5.5" stroke={css.textTertiary} strokeWidth="1.1" />
-      <path d="M6.5 5.8V9.2" stroke={css.textTertiary} strokeWidth="1.2" strokeLinecap="round" />
-      <circle cx="6.5" cy="3.9" r="0.7" fill={css.textTertiary} />
-    </svg>
-  )
-}
-
-// Overview shows only the live pipeline — historical replay isn't feasible across the
-// real-time event volume, so we surface that as honest status instead of a dead toggle.
-function LiveIndicator() {
-  const [showTip, setShowTip] = useState(false)
-  return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        height: 38,
-        padding: '0 12px',
-        background: css.surface,
-        border: `1px solid ${css.border}`,
-        borderRadius: 6,
-      }}>
-        <span className="live-dot" style={{
-          width: 7,
-          height: 7,
-          borderRadius: 100,
-          background: css.brand,
-          flexShrink: 0,
-        }} />
-        <span style={{
-          fontFamily: font.body,
-          fontSize: 12,
-          fontWeight: 700,
-          color: css.textPrimary,
-          letterSpacing: '-0.012px',
-          whiteSpace: 'nowrap',
-        }}>
-          Real Time
-        </span>
-        <button
-          onMouseEnter={() => setShowTip(true)}
-          onMouseLeave={() => setShowTip(false)}
-          onFocus={() => setShowTip(true)}
-          onBlur={() => setShowTip(false)}
-          aria-label="Why is this view real-time only?"
-          style={{
-            background: 'none', border: 'none', padding: 0, marginLeft: 2,
-            cursor: 'default', display: 'flex', alignItems: 'center',
-          }}
-        >
-          <InfoIcon />
-        </button>
-      </div>
-
-      {/* Tiny Wire popover — short header + tight body */}
-      {showTip && (
-        <div
-          className="filter-enter"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            right: 0,
-            minWidth: 200,
-            maxWidth: 230,
-            background: css.surface,
-            border: `1px solid ${css.border}`,
-            borderRadius: 8,
-            padding: 12,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-            zIndex: 300,
-          }}
-        >
-          <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.textPrimary, marginBottom: 6 }}>
-            Real-time only
-          </div>
-          <span style={{ fontFamily: font.body, fontSize: 12, fontWeight: 500, color: css.textSecondary, lineHeight: 1.5 }}>
-            No historical replay. Use <strong style={{ color: css.textPrimary }}>Queue Monitor</strong> for time ranges.
-          </span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function StarButton({ filled, onToggle }: { filled: boolean; onToggle: (e: React.MouseEvent) => void }) {
+function StarButton({ title, filled, onToggle }: { title: string; filled: boolean; onToggle: (e: React.MouseEvent) => void }) {
   const [hovered, setHovered] = useState(false)
   return (
     <button
       onClick={onToggle}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      aria-label={filled ? `Remove ${title} from favorites` : `Add ${title} to favorites`}
+      aria-pressed={filled}
       style={{
         background: 'none',
         border: 'none',
@@ -268,7 +184,7 @@ function CheckIcon() {
 
 // ─── Header Bar ──────────────────────────────────────────────────────────────
 
-function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (v: string) => void }) {
+function HeaderBar({ searchQuery, onSearchChange, searchRef }: { searchQuery: string; onSearchChange: (v: string) => void; searchRef: React.RefObject<HTMLInputElement | null> }) {
   return (
     <div style={{
       background: css.surfacePage,
@@ -291,7 +207,7 @@ function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSea
       </h1>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        {/* Search */}
+        {/* Search — ⌘K focuses it */}
         <div style={{
           background: css.surface,
           border: `0.8px solid ${searchQuery ? css.brand : css.border}`,
@@ -307,10 +223,12 @@ function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSea
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
             <SearchIcon />
             <input
+              ref={searchRef}
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search queues…"
+              aria-label="Search queues"
               style={{
                 border: 'none',
                 outline: 'none',
@@ -327,6 +245,7 @@ function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSea
           {searchQuery ? (
             <button
               onClick={() => onSearchChange('')}
+              aria-label="Clear search"
               style={{
                 border: 'none',
                 background: css.surfaceMuted,
@@ -346,7 +265,7 @@ function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSea
               ✕
             </button>
           ) : (
-            <div style={{
+            <div aria-hidden="true" style={{
               background: css.surface,
               border: `0.8px solid ${css.border}`,
               borderRadius: 5,
@@ -363,7 +282,7 @@ function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSea
         </div>
 
         {/* Live status — Overview is real-time only by design */}
-        <LiveIndicator />
+        <LiveIndicator tooltipBody={<>No historical replay. Use <strong style={{ color: css.textPrimary }}>Queue Monitor</strong> for time ranges.</>} />
       </div>
     </div>
   )
@@ -372,17 +291,6 @@ function HeaderBar({ searchQuery, onSearchChange }: { searchQuery: string; onSea
 // ─── Filter Pills ─────────────────────────────────────────────────────────────
 
 type PillConfig = { label: string; count: number; check?: boolean }
-
-const pillConfigs: PillConfig[] = [
-  { label: 'Favorites',    count: 2,  check: true },
-  { label: 'Review',       count: 10 },
-  { label: 'Eligibility',  count: 8  },
-  { label: 'Closing',      count: 6  },
-  { label: 'Fulfillment',  count: 5  },
-  { label: 'Exceptions',   count: 3  },
-  { label: 'Audit',        count: 2  },
-  { label: 'View all',     count: 34 },
-]
 
 function FilterPills({ active, onChange, pills }: { active: string; onChange: (label: string) => void; pills: PillConfig[] }) {
   return (
@@ -393,6 +301,7 @@ function FilterPills({ active, onChange, pills }: { active: string; onChange: (l
           <button
             key={pill.label}
             onClick={() => onChange(pill.label)}
+            aria-pressed={isActive}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -424,15 +333,7 @@ function FilterPills({ active, onChange, pills }: { active: string; onChange: (l
 
 // ─── Queue Card ───────────────────────────────────────────────────────────────
 
-type Stat = { label: string; value: string; sub: string }
-type QueueCardProps = {
-  title: string
-  category: string
-  favorite?: boolean
-  badge: { text: string; type: 'danger' | 'info' }
-  stats: [Stat, Stat]
-  flow: { outflow: string; inflow: string }
-  footer: { text: string; type: 'danger' | 'info' }
+type QueueCardProps = QueueDef & {
   onOpen?: () => void
   onToggleFavorite?: (e: React.MouseEvent) => void
   actioned?: boolean
@@ -458,7 +359,7 @@ function StatusBadge({ text, type }: { text: string; type: 'danger' | 'info' }) 
   )
 }
 
-function StatColumn({ label, value, sub }: Stat) {
+function StatColumn({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <span style={{
@@ -507,6 +408,15 @@ function QueueCard({ title, favorite, badge, stats, flow, footer, onOpen, onTogg
     <div
       ref={cardRef}
       onClick={onOpen}
+      onKeyDown={(e) => {
+        if (onOpen && (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-label={onOpen ? `Open ${title} in Queue Monitor` : undefined}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -539,7 +449,7 @@ function QueueCard({ title, favorite, badge, stats, flow, footer, onOpen, onTogg
         }}
       />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <StarButton filled={!!favorite} onToggle={onToggleFavorite ?? (() => {})} />
+        <StarButton title={title} filled={!!favorite} onToggle={onToggleFavorite ?? (() => {})} />
         <StatusBadge text={badge.text} type={badge.type} />
       </div>
 
@@ -637,398 +547,6 @@ function QueueCard({ title, favorite, badge, stats, flow, footer, onOpen, onTogg
   )
 }
 
-// ─── Queue Data ───────────────────────────────────────────────────────────────
-
-const allQueues: QueueCardProps[] = [
-  // ── Review (10) ─────────────────────────────────────────────────────────────
-  {
-    title: 'Urgent Loan',
-    category: 'Review',
-    favorite: true,
-    badge: { text: '14 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '1,402', sub: '+228 New Today' },
-      { label: 'Avg. Process Time', value: '5.2h', sub: 'vs 4.2h Target' },
-    ],
-    flow: { outflow: '2,012', inflow: '228' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'New Purchase Applications',
-    category: 'Review',
-    badge: { text: '8 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '3,847', sub: '+312 New Today' },
-      { label: 'Avg. Process Time', value: '3.8h', sub: 'vs 4.0h Target' },
-    ],
-    flow: { outflow: '298', inflow: '312' },
-    footer: { text: 'Near target', type: 'info' },
-  },
-  {
-    title: 'Income Verification',
-    category: 'Review',
-    badge: { text: '22 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '612', sub: '+87 New Today' },
-      { label: 'Avg. Process Time', value: '7.4h', sub: 'vs 5.5h Target' },
-    ],
-    flow: { outflow: '54', inflow: '87' },
-    footer: { text: 'Backlogging', type: 'danger' },
-  },
-  {
-    title: 'Employment History Review',
-    category: 'Review',
-    badge: { text: '11 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '441', sub: '+63 New Today' },
-      { label: 'Avg. Process Time', value: '4.1h', sub: 'vs 4.5h Target' },
-    ],
-    flow: { outflow: '58', inflow: '63' },
-    footer: { text: 'Near target', type: 'info' },
-  },
-  {
-    title: 'Credit Score Review',
-    category: 'Review',
-    badge: { text: '9 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '289', sub: '+44 New Today' },
-      { label: 'Avg. Process Time', value: '6.8h', sub: 'vs 4.8h Target' },
-    ],
-    flow: { outflow: '31', inflow: '44' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Self-Employed Income Review',
-    category: 'Review',
-    badge: { text: '17 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '178', sub: '+29 New Today' },
-      { label: 'Avg. Process Time', value: '8.2h', sub: 'vs 6.0h Target' },
-    ],
-    flow: { outflow: '22', inflow: '29' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Foreign National Review',
-    category: 'Review',
-    badge: { text: '4 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '94', sub: '+11 New Today' },
-      { label: 'Avg. Process Time', value: '9.1h', sub: 'vs 9.0h Target' },
-    ],
-    flow: { outflow: '9', inflow: '11' },
-    footer: { text: 'Near target', type: 'info' },
-  },
-  {
-    title: 'VA Loan Review',
-    category: 'Review',
-    badge: { text: '5 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '521', sub: '+71 New Today' },
-      { label: 'Avg. Process Time', value: '3.6h', sub: 'vs 4.0h Target' },
-    ],
-    flow: { outflow: '68', inflow: '71' },
-    footer: { text: 'On track', type: 'info' },
-  },
-  {
-    title: 'FHA Loan Review',
-    category: 'Review',
-    badge: { text: '12 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '834', sub: '+108 New Today' },
-      { label: 'Avg. Process Time', value: '4.4h', sub: 'vs 4.5h Target' },
-    ],
-    flow: { outflow: '104', inflow: '108' },
-    footer: { text: 'Near target', type: 'info' },
-  },
-  {
-    title: 'Jumbo Loan Review',
-    category: 'Review',
-    badge: { text: '7 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '203', sub: '+31 New Today' },
-      { label: 'Avg. Process Time', value: '7.6h', sub: 'vs 5.5h Target' },
-    ],
-    flow: { outflow: '24', inflow: '31' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-
-  // ── Eligibility (8) ─────────────────────────────────────────────────────────
-  {
-    title: 'Refinance',
-    category: 'Eligibility',
-    favorite: true,
-    badge: { text: '47 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '2,341', sub: '+203 New Today' },
-      { label: 'Avg. Process Time', value: '6.1h', sub: 'vs 4.2h Target' },
-    ],
-    flow: { outflow: '91', inflow: '203' },
-    footer: { text: 'Needs attention', type: 'info' },
-  },
-  {
-    title: 'Debt-to-Income Assessment',
-    category: 'Eligibility',
-    badge: { text: '19 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '734', sub: '+92 New Today' },
-      { label: 'Avg. Process Time', value: '5.9h', sub: 'vs 4.5h Target' },
-    ],
-    flow: { outflow: '78', inflow: '92' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'LTV Eligibility Review',
-    category: 'Eligibility',
-    badge: { text: '13 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '489', sub: '+64 New Today' },
-      { label: 'Avg. Process Time', value: '5.3h', sub: 'vs 4.2h Target' },
-    ],
-    flow: { outflow: '55', inflow: '64' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Condo & Co-op Approval',
-    category: 'Eligibility',
-    badge: { text: '6 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '167', sub: '+19 New Today' },
-      { label: 'Avg. Process Time', value: '6.4h', sub: 'vs 7.0h Target' },
-    ],
-    flow: { outflow: '15', inflow: '19' },
-    footer: { text: 'Within target', type: 'info' },
-  },
-  {
-    title: 'Second Home Eligibility',
-    category: 'Eligibility',
-    badge: { text: '8 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '244', sub: '+28 New Today' },
-      { label: 'Avg. Process Time', value: '4.8h', sub: 'vs 5.0h Target' },
-    ],
-    flow: { outflow: '25', inflow: '28' },
-    footer: { text: 'Near target', type: 'info' },
-  },
-  {
-    title: 'Investment Property Eligibility',
-    category: 'Eligibility',
-    badge: { text: '11 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '312', sub: '+47 New Today' },
-      { label: 'Avg. Process Time', value: '6.7h', sub: 'vs 5.0h Target' },
-    ],
-    flow: { outflow: '39', inflow: '47' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'ARM Eligibility Review',
-    category: 'Eligibility',
-    badge: { text: '3 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '198', sub: '+24 New Today' },
-      { label: 'Avg. Process Time', value: '3.9h', sub: 'vs 4.2h Target' },
-    ],
-    flow: { outflow: '21', inflow: '24' },
-    footer: { text: 'On track', type: 'info' },
-  },
-  {
-    title: 'USDA Loan Eligibility',
-    category: 'Eligibility',
-    badge: { text: '2 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '87', sub: '+9 New Today' },
-      { label: 'Avg. Process Time', value: '4.6h', sub: 'vs 5.0h Target' },
-    ],
-    flow: { outflow: '8', inflow: '9' },
-    footer: { text: 'Within target', type: 'info' },
-  },
-
-  // ── Closing (6) ─────────────────────────────────────────────────────────────
-  {
-    title: 'Title & Escrow Coordination',
-    category: 'Closing',
-    badge: { text: '14 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '891', sub: '+103 New Today' },
-      { label: 'Avg. Process Time', value: '4.2h', sub: 'vs 4.5h Target' },
-    ],
-    flow: { outflow: '97', inflow: '103' },
-    footer: { text: 'Near target', type: 'info' },
-  },
-  {
-    title: 'Final Disclosure Review',
-    category: 'Closing',
-    badge: { text: '16 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '423', sub: '+58 New Today' },
-      { label: 'Avg. Process Time', value: '5.8h', sub: 'vs 4.0h Target' },
-    ],
-    flow: { outflow: '49', inflow: '58' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Clear to Close',
-    category: 'Closing',
-    badge: { text: '21 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '678', sub: '+84 New Today' },
-      { label: 'Avg. Process Time', value: '6.3h', sub: 'vs 4.5h Target' },
-    ],
-    flow: { outflow: '71', inflow: '84' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Wire Transfer Authorization',
-    category: 'Closing',
-    badge: { text: '9 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '312', sub: '+38 New Today' },
-      { label: 'Avg. Process Time', value: '2.8h', sub: 'vs 2.0h Target' },
-    ],
-    flow: { outflow: '34', inflow: '38' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Deed Recording',
-    category: 'Closing',
-    badge: { text: '7 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '544', sub: '+67 New Today' },
-      { label: 'Avg. Process Time', value: '3.6h', sub: 'vs 4.0h Target' },
-    ],
-    flow: { outflow: '62', inflow: '67' },
-    footer: { text: 'On track', type: 'info' },
-  },
-  {
-    title: 'Post-Close Document Verification',
-    category: 'Closing',
-    badge: { text: '18 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '1,124', sub: '+139 New Today' },
-      { label: 'Avg. Process Time', value: '4.9h', sub: 'vs 5.5h Target' },
-    ],
-    flow: { outflow: '128', inflow: '139' },
-    footer: { text: 'Within target', type: 'info' },
-  },
-
-  // ── Fulfillment (5) ─────────────────────────────────────────────────────────
-  {
-    title: 'Appraisal Scheduling',
-    category: 'Fulfillment',
-    badge: { text: '23 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '567', sub: '+74 New Today' },
-      { label: 'Avg. Process Time', value: '8.9h', sub: 'vs 6.0h Target' },
-    ],
-    flow: { outflow: '61', inflow: '74' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Flood Zone Certification',
-    category: 'Fulfillment',
-    badge: { text: '4 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '234', sub: '+28 New Today' },
-      { label: 'Avg. Process Time', value: '2.4h', sub: 'vs 3.0h Target' },
-    ],
-    flow: { outflow: '25', inflow: '28' },
-    footer: { text: 'On track', type: 'info' },
-  },
-  {
-    title: 'Insurance Verification',
-    category: 'Fulfillment',
-    badge: { text: '9 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '389', sub: '+47 New Today' },
-      { label: 'Avg. Process Time', value: '3.7h', sub: 'vs 4.0h Target' },
-    ],
-    flow: { outflow: '43', inflow: '47' },
-    footer: { text: 'Near target', type: 'info' },
-  },
-  {
-    title: 'Survey & Title Search',
-    category: 'Fulfillment',
-    badge: { text: '12 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '445', sub: '+56 New Today' },
-      { label: 'Avg. Process Time', value: '7.1h', sub: 'vs 5.5h Target' },
-    ],
-    flow: { outflow: '48', inflow: '56' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Conditions Clearance',
-    category: 'Fulfillment',
-    badge: { text: '31 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '812', sub: '+98 New Today' },
-      { label: 'Avg. Process Time', value: '5.6h', sub: 'vs 4.2h Target' },
-    ],
-    flow: { outflow: '87', inflow: '98' },
-    footer: { text: 'Backlogging', type: 'danger' },
-  },
-
-  // ── Exceptions (3) ──────────────────────────────────────────────────────────
-  {
-    title: 'Manual Underwrite Exception',
-    category: 'Exceptions',
-    badge: { text: '8 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '156', sub: '+22 New Today' },
-      { label: 'Avg. Process Time', value: '11.3h', sub: 'vs 8.0h Target' },
-    ],
-    flow: { outflow: '18', inflow: '22' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'High-Risk Property Exception',
-    category: 'Exceptions',
-    badge: { text: '5 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '89', sub: '+13 New Today' },
-      { label: 'Avg. Process Time', value: '9.7h', sub: 'vs 7.0h Target' },
-    ],
-    flow: { outflow: '10', inflow: '13' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-  {
-    title: 'Non-Warrantable Condo Exception',
-    category: 'Exceptions',
-    badge: { text: '2 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '47', sub: '+6 New Today' },
-      { label: 'Avg. Process Time', value: '8.4h', sub: 'vs 9.0h Target' },
-    ],
-    flow: { outflow: '5', inflow: '6' },
-    footer: { text: 'Near target', type: 'info' },
-  },
-
-  // ── Audit (2) ───────────────────────────────────────────────────────────────
-  {
-    title: 'HMDA Compliance Audit',
-    category: 'Audit',
-    badge: { text: '24 approaching risk', type: 'info' },
-    stats: [
-      { label: 'Active Loans', value: '2,891', sub: '+187 New Today' },
-      { label: 'Avg. Process Time', value: '6.2h', sub: 'vs 7.0h Target' },
-    ],
-    flow: { outflow: '174', inflow: '187' },
-    footer: { text: 'Within target', type: 'info' },
-  },
-  {
-    title: 'QC Post-Close Audit',
-    category: 'Audit',
-    badge: { text: '11 at risk', type: 'danger' },
-    stats: [
-      { label: 'Active Loans', value: '1,203', sub: '+148 New Today' },
-      { label: 'Avg. Process Time', value: '5.4h', sub: 'vs 4.5h Target' },
-    ],
-    flow: { outflow: '135', inflow: '148' },
-    footer: { text: 'Above target time', type: 'danger' },
-  },
-]
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Overview() {
@@ -1036,32 +554,51 @@ export default function Overview() {
   const { actioned } = useQueueContext()
   const [activeFilter, setActiveFilter] = useState('Favorites')
   const [favorites, setFavorites] = useState<Set<string>>(
-    () => new Set(allQueues.filter((q) => q.favorite).map((q) => q.title))
+    () => new Set(queues.filter((q) => q.favorite).map((q) => q.title))
   )
   const [searchQuery, setSearchQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // ⌘K / Ctrl+K focuses the queue search — the badge on the field promises it.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   function toggleFavorite(e: React.MouseEvent, title: string) {
     e.stopPropagation()
     setFavorites((prev) => {
       const next = new Set(prev)
-      next.has(title) ? next.delete(title) : next.add(title)
+      if (next.has(title)) next.delete(title)
+      else next.add(title)
       return next
     })
   }
 
-  const pillConfigs_dynamic = pillConfigs.map((p) =>
-    p.label === 'Favorites' ? { ...p, count: favorites.size } : p
-  )
+  // Pill counts computed from the same data the cards render.
+  const pillConfigs: PillConfig[] = [
+    { label: 'Favorites', count: favorites.size, check: true },
+    ...categories.map((c) => ({ label: c, count: queues.filter((q) => q.category === c).length })),
+    { label: 'View all', count: queues.length },
+  ]
+
+  const searchActive = searchQuery.trim() !== ''
 
   const visibleQueues = (() => {
     const filtered = (() => {
-      if (searchQuery.trim()) {
+      if (searchActive) {
         const q = searchQuery.trim().toLowerCase()
-        return allQueues.filter((c) => c.title.toLowerCase().includes(q))
+        return queues.filter((c) => c.title.toLowerCase().includes(q))
       }
-      if (activeFilter === 'Favorites') return allQueues.filter((q) => favorites.has(q.title))
-      if (activeFilter === 'View all')  return allQueues
-      return allQueues.filter((q) => q.category === activeFilter)
+      if (activeFilter === 'Favorites') return queues.filter((q) => favorites.has(q.title))
+      if (activeFilter === 'View all')  return queues
+      return queues.filter((q) => q.category === activeFilter)
     })()
     return [...filtered].sort((a, b) => {
       // 1. danger before info
@@ -1081,8 +618,9 @@ export default function Overview() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HeaderBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-      <FilterPills active={activeFilter} onChange={setActiveFilter} pills={pillConfigs_dynamic} />
+      <HeaderBar searchQuery={searchQuery} onSearchChange={setSearchQuery} searchRef={searchRef} />
+      {/* Search overrides the category filter, so no pill shows as active while searching */}
+      <FilterPills active={searchActive ? '' : activeFilter} onChange={(label) => { setSearchQuery(''); setActiveFilter(label) }} pills={pillConfigs} />
       <div key={activeFilter + searchQuery} className="filter-enter" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
         {visibleQueues.length > 0 ? visibleQueues.map((q) => (
           <QueueCard

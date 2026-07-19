@@ -1,4 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import Toast from '../components/Toast'
+import { useQueueContext } from '../QueueContext'
+import { getMetrics } from '../data/queues'
+import { insightFor, runSimulation, type SimResult } from '../data/simulation'
+
+// All Simulation copy derives from the Refinance queue record so its numbers
+// match the Overview card and Queue Monitor.
+const QUEUE = 'Refinance'
+const metrics = getMetrics(QUEUE)
+const ACTIVE_FMT = metrics.active.toLocaleString('en-US')
 
 const css = {
   brand: 'var(--brand)',
@@ -31,7 +41,6 @@ type ConditionData = {
   comparator: string
   current: string
   proposed: string
-  insight: string
 }
 
 type Template = {
@@ -41,7 +50,6 @@ type Template = {
   comparator: string
   current: string
   defaultProposed: string
-  insight: string
 }
 
 const TEMPLATES: Template[] = [
@@ -49,37 +57,25 @@ const TEMPLATES: Template[] = [
     type: 'Timeframe', label: 'Closing Timeline',
     attribute: 'Closing Timeline', comparator: 'Closing Date Proximity',
     current: '≤ 30 days', defaultProposed: '≤ 14 days',
-    insight: 'Tightening this window will surface 84 loans currently outside the top 50.',
   },
   {
     type: 'Timeframe', label: 'Processing Status',
     attribute: 'Processing Status', comparator: 'Time in Queue',
     current: '> 48 hours', defaultProposed: '> 24 hours',
-    insight: 'Expanding eligibility promotes 142 stalled loans into active priority range.',
   },
   {
     type: 'Numeric', label: 'LTV Ratio',
     attribute: 'Loan Risk Profile', comparator: 'LTV Ratio',
     current: '≤ 80%', defaultProposed: '≤ 90%',
-    insight: 'Raising this threshold de-prioritizes 67 lower-risk loans.',
   },
   {
     type: 'Numeric', label: 'DTI Ratio',
     attribute: 'Debt-to-Income', comparator: 'DTI Ratio',
     current: '≥ 43%', defaultProposed: '≥ 50%',
-    insight: 'Expanding the DTI threshold elevates 53 borderline loans into priority range.',
   },
 ]
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-
-function CaretDownIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M3 4.5L6 7.5L9 4.5" stroke={css.textTertiary} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
 
 function ArrowRightIcon() {
   return (
@@ -158,15 +154,13 @@ function HeaderBar() {
       alignItems: 'center',
       gap: 4,
     }}>
-      <span style={{ fontFamily: font.heading, fontWeight: 700, fontSize: 20, letterSpacing: '-0.08px', color: css.textPrimary }}>
+      <h1 style={{ fontFamily: font.heading, fontWeight: 700, fontSize: 20, letterSpacing: '-0.08px', color: css.textPrimary, margin: 0 }}>
         Simulation
+      </h1>
+      {/* Queue scope label — simulations run against the queue you're monitoring */}
+      <span style={{ fontFamily: font.heading, fontWeight: 600, fontSize: 16, letterSpacing: '-0.048px', color: css.textTertiary, padding: '8px 10px' }}>
+        {QUEUE}
       </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '8px 10px' }}>
-        <span style={{ fontFamily: font.heading, fontWeight: 600, fontSize: 16, letterSpacing: '-0.048px', color: css.textTertiary }}>
-          Refinance
-        </span>
-        <CaretDownIcon />
-      </div>
     </div>
   )
 }
@@ -312,7 +306,7 @@ function ConditionCard({
           </div>
         </div>
 
-        <InsightBanner text={condition.insight} />
+        <InsightBanner text={insightFor(QUEUE, condition.label, condition.proposed)} />
       </div>
     </div>
   )
@@ -344,7 +338,6 @@ function AddConditionForm({
       comparator: selected.comparator,
       current: selected.current,
       proposed: proposed.trim(),
-      insight: selected.insight,
     })
   }
 
@@ -412,7 +405,7 @@ function AddConditionForm({
               />
             </div>
           </div>
-          <InsightBanner text={selected.insight} />
+          <InsightBanner text={insightFor(QUEUE, selected.label, proposed || selected.defaultProposed)} />
         </div>
       )}
 
@@ -497,9 +490,9 @@ function ConditionBuilder({
       }}>
         <div style={{ marginTop: 1, flexShrink: 0 }}><ShieldIcon /></div>
         <div>
-          <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.danger, lineHeight: 1.25 }}>Refinance</div>
+          <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.danger, lineHeight: 1.25 }}>{QUEUE}</div>
           <div style={{ fontFamily: font.body, fontSize: 13, color: css.danger, lineHeight: 1.4 }}>
-            has 14 loans approaching at-risk breach. Testing time-based conditions may help reprioritize before cutoff.
+            has {metrics.urgent} loans within 5 days of closing. Testing time-based conditions may help reprioritize before cutoff.
           </div>
         </div>
       </div>
@@ -601,26 +594,7 @@ function ConditionBuilder({
   )
 }
 
-// ─── Loan Table Data ──────────────────────────────────────────────────────────
-
-type LoanRow = {
-  rank: number; loan: string; closing: string
-  timeInQ: string; ltv: string; change: string
-  changeType: 'positive' | 'negative' | 'neutral'
-}
-
-const loanRows: LoanRow[] = [
-  { rank: 1,  loan: 'LN-004821', closing: '3 days',  timeInQ: '61 hrs', ltv: '94%', change: '+38', changeType: 'positive' },
-  { rank: 2,  loan: 'LN-007193', closing: '5 days',  timeInQ: '52 hrs', ltv: '96%', change: '+22', changeType: 'positive' },
-  { rank: 3,  loan: 'LN-002047', closing: '10 days', timeInQ: '47 hrs', ltv: '91%', change: '+15', changeType: 'positive' },
-  { rank: 4,  loan: 'LN-009384', closing: '12 days', timeInQ: '33 hrs', ltv: '90%', change: '+11', changeType: 'positive' },
-  { rank: 5,  loan: 'LN-001192', closing: '18 days', timeInQ: '28 hrs', ltv: '82%', change: '–',   changeType: 'neutral'  },
-  { rank: 6,  loan: 'LN-005671', closing: '7 days',  timeInQ: '55 hrs', ltv: '97%', change: '+29', changeType: 'positive' },
-  { rank: 7,  loan: 'LN-003408', closing: '22 days', timeInQ: '19 hrs', ltv: '78%', change: '-8',  changeType: 'negative' },
-  { rank: 8,  loan: 'LN-008814', closing: '9 days',  timeInQ: '31 hrs', ltv: '93%', change: '+17', changeType: 'positive' },
-  { rank: 9,  loan: 'LN-006229', closing: '25 days', timeInQ: '14 hrs', ltv: '85%', change: '-5',  changeType: 'negative' },
-  { rank: 10, loan: 'LN-000847', closing: '11 days', timeInQ: '44 hrs', ltv: '92%', change: '+14', changeType: 'positive' },
-]
+// ─── Loan Table Pills ─────────────────────────────────────────────────────────
 
 const changePillStyles = {
   positive: { bg: 'var(--accent-light)',             border: 'var(--chart-azure)',              color: css.info    },
@@ -652,13 +626,19 @@ function ChangePill({ value, type }: { value: string; type: 'positive' | 'negati
 // ─── Simulation Results Panel ─────────────────────────────────────────────────
 
 function SimulationResults({
-  phase, progress, conditionCount, onModify, resultsKey,
+  phase, progress, conditionCount, onModify, resultsKey, saved, applied, onSave, onShare, onApply, result,
 }: {
   phase: Phase
   progress: number
   conditionCount: number
   onModify: () => void
   resultsKey: number
+  saved: boolean
+  applied: boolean
+  onSave: () => void
+  onShare: () => void
+  onApply: () => void
+  result: SimResult
 }) {
   const cell: React.CSSProperties = {
     padding: '10px 12px', borderBottom: `1px solid ${css.border}`,
@@ -672,7 +652,7 @@ function SimulationResults({
 
   // Progress label
   const runLabel = progress < 40
-    ? 'Scanning 2,341 loans in Refinance…'
+    ? `Scanning ${ACTIVE_FMT} loans in ${QUEUE}…`
     : progress < 80
       ? `Computing rank changes across ${conditionCount} condition${conditionCount !== 1 ? 's' : ''}…`
       : 'Finalizing simulation results…'
@@ -799,16 +779,16 @@ function SimulationResults({
               </button>
             </div>
             <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 500, color: css.textTertiary }}>
-              Based on 2,341 loans · Refinance · Simulated, not applied
+              Based on {ACTIVE_FMT} loans · {QUEUE} · Simulated, not applied
             </div>
           </div>
 
-          {/* KPI row */}
+          {/* KPI row — computed by the simulation engine from the conditions */}
           <div style={{ display: 'flex', gap: 16 }}>
             {[
-              { label: 'loans affected', value: '293',  sub: 'of 2,341 total, 12.5%',    delay: 60  },
-              { label: 'rank increases', value: '+226', sub: 'moved higher in priority',  delay: 130 },
-              { label: 'rank decreases', value: '-67',  sub: 'moved lower in priority',   delay: 200 },
+              { label: 'loans affected', value: result.affected.toLocaleString('en-US'), sub: `of ${ACTIVE_FMT} total, ${result.affectedPct}% (est.)`, delay: 60 },
+              { label: 'rank increases', value: `+${result.up.toLocaleString('en-US')}`, sub: 'moved higher in priority',  delay: 130 },
+              { label: 'rank decreases', value: `-${result.down.toLocaleString('en-US')}`, sub: 'moved lower in priority',   delay: 200 },
             ].map(({ label, value, sub, delay }) => (
               <div
                 key={label}
@@ -867,7 +847,7 @@ function SimulationResults({
                 </tr>
               </thead>
               <tbody>
-                {loanRows.map((row, i) => (
+                {result.rows.map((row, i) => (
                   <tr
                     key={row.rank}
                     className="fade-up"
@@ -886,34 +866,78 @@ function SimulationResults({
           </div>
 
           {/* Footer CTA */}
-          <div
-            className="fade-up"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', animationDelay: '700ms' }}
-          >
-            <div>
-              <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.textPrimary, marginBottom: 2 }}>
-                Happy with these results?
-              </div>
-              <div style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary }}>
-                Save as a scenario to apply or share with your team.
+          {applied ? (
+            <div
+              className="fade-up"
+              style={{
+                background: 'rgba(98,148,96,0.08)', border: '1px solid var(--brand-mid)',
+                borderRadius: 10, padding: '12px 16px',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                <circle cx="8" cy="8" r="6.5" fill="#629460" />
+                <path d="M5 8L7 10L11 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div>
+                <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: 'var(--brand-dark)', marginBottom: 2 }}>
+                  Conditions applied to {QUEUE}
+                </div>
+                <div style={{ fontFamily: font.body, fontSize: 12, color: 'var(--brand-dark)' }}>
+                  Live rankings are re-sorting — the queue is marked as actioned on Overview.
+                </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {['Save', 'Share'].map(label => (
-                <button key={label} style={{
-                  height: 34, padding: '0 16px', background: css.surface,
-                  border: `1px solid ${css.border}`, borderRadius: 6,
-                  fontFamily: font.body, fontSize: 12, fontWeight: 600,
-                  color: css.textSecondary, cursor: 'pointer',
-                }}>{label}</button>
-              ))}
-              <button style={{
-                height: 34, padding: '0 16px', background: css.brand, border: 'none',
-                borderRadius: 6, fontFamily: font.body, fontSize: 12, fontWeight: 700,
-                color: 'var(--text-inverse)', cursor: 'pointer',
-              }}>Apply</button>
+          ) : (
+            <div
+              className="fade-up"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', animationDelay: '700ms' }}
+            >
+              <div>
+                <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.textPrimary, marginBottom: 2 }}>
+                  Happy with these results?
+                </div>
+                <div style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary }}>
+                  Save as a scenario to apply or share with your team.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={onSave}
+                  disabled={saved}
+                  style={{
+                    height: 34, padding: '0 16px', background: saved ? 'var(--brand-light)' : css.surface,
+                    border: `1px solid ${saved ? 'var(--brand-mid)' : css.border}`, borderRadius: 6,
+                    fontFamily: font.body, fontSize: 12, fontWeight: 600,
+                    color: saved ? 'var(--brand-dark)' : css.textSecondary, cursor: saved ? 'default' : 'pointer',
+                  }}
+                >
+                  {saved ? 'Saved ✓' : 'Save'}
+                </button>
+                <button
+                  onClick={onShare}
+                  style={{
+                    height: 34, padding: '0 16px', background: css.surface,
+                    border: `1px solid ${css.border}`, borderRadius: 6,
+                    fontFamily: font.body, fontSize: 12, fontWeight: 600,
+                    color: css.textSecondary, cursor: 'pointer',
+                  }}
+                >
+                  Share
+                </button>
+                <button
+                  onClick={onApply}
+                  style={{
+                    height: 34, padding: '0 16px', background: css.brand, border: 'none',
+                    borderRadius: 6, fontFamily: font.body, fontSize: 12, fontWeight: 700,
+                    color: 'var(--text-inverse)', cursor: 'pointer',
+                  }}
+                >
+                  Apply
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -927,6 +951,38 @@ export default function Simulation() {
   const [conditions, setConditions] = useState<ConditionData[]>([])
   const [progress, setProgress] = useState(0)
   const [resultsKey, setResultsKey] = useState(0)
+  const [saved, setSaved] = useState(false)
+  const [applied, setApplied] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const { markActioned } = useQueueContext()
+
+  // Rank shifts computed from the actual condition thresholds — editing a
+  // proposed value and re-running produces different results.
+  const result = useMemo(
+    () => runSimulation(QUEUE, conditions.map(c => ({ label: c.label, proposed: c.proposed }))),
+    [conditions]
+  )
+
+  function showToast(message: string) {
+    setToast(message)
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  function handleSave() {
+    setSaved(true)
+    showToast('Scenario saved to your drafts')
+  }
+
+  function handleShare() {
+    try { navigator.clipboard?.writeText(window.location.href) } catch { /* clipboard unavailable */ }
+    showToast('Scenario link copied to clipboard')
+  }
+
+  function handleApplyConditions() {
+    setApplied(true)
+    markActioned(QUEUE)
+    showToast(`Conditions applied to ${QUEUE}`)
+  }
 
   // Progress animation when running
   useEffect(() => {
@@ -950,6 +1006,8 @@ export default function Simulation() {
 
   function handleRun() {
     setProgress(0)
+    setSaved(false)
+    setApplied(false)
     setPhase('running')
   }
 
@@ -959,6 +1017,8 @@ export default function Simulation() {
 
   function handleReset() {
     setConditions([])
+    setSaved(false)
+    setApplied(false)
     setPhase('build')
   }
 
@@ -993,8 +1053,15 @@ export default function Simulation() {
           conditionCount={conditions.length}
           onModify={handleModify}
           resultsKey={resultsKey}
+          saved={saved}
+          applied={applied}
+          onSave={handleSave}
+          onShare={handleShare}
+          onApply={handleApplyConditions}
+          result={result}
         />
       </div>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   )
 }

@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import RosterModal from '../components/RosterModal'
+import Toast from '../components/Toast'
+import LiveIndicator from '../components/LiveIndicator'
+import { useQueueContext } from '../QueueContext'
+import { getWorkloads } from '../data/queues'
+import { team, type TeamMember } from '../data/team'
 
 const css = {
   brand: 'var(--brand)',
@@ -20,45 +25,9 @@ const font = {
   body: "'DM Sans', sans-serif",
 }
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-function CaretDownIcon({ color }: { color?: string }) {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M3 4.5L6 7.5L9 4.5" stroke={color ?? css.textTertiary} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function SortAscIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-      <path d="M5 8V2M5 2L2.5 4.5M5 2L7.5 4.5" stroke={css.textTertiary} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function ColumnsIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <rect x="1" y="2" width="4" height="8" rx="1" stroke={css.textTertiary} strokeWidth="1.1" />
-      <rect x="7" y="2" width="4" height="8" rx="1" stroke={css.textTertiary} strokeWidth="1.1" />
-    </svg>
-  )
-}
-
-
 // ─── Header Bar ───────────────────────────────────────────────────────────────
 
-const TIME_TABS = ['Real Time', '1d', 'Week', 'Month', 'Custom']
-
-function HeaderBar({
-  activeTab,
-  onTabChange,
-}: {
-  activeTab: string
-  onTabChange: (tab: string) => void
-}) {
+function HeaderBar() {
   return (
     <div style={{
       background: css.surfacePage,
@@ -80,62 +49,19 @@ function HeaderBar({
         }}>
           Roster
         </h1>
-        <button style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          background: css.surface,
-          border: `0.8px solid ${css.border}`,
-          borderRadius: 6,
-          padding: '4px 10px',
-          cursor: 'pointer',
+        {/* Queue scope label — the roster is Refinance-scoped in this prototype */}
+        <span style={{
           fontFamily: font.heading,
           fontSize: 16,
           fontWeight: 600,
           color: css.textTertiary,
         }}>
           Refinance
-          <CaretDownIcon />
-        </button>
+        </span>
       </div>
 
-      <div style={{ display: 'flex', height: 38 }}>
-        {TIME_TABS.map((tab, i) => {
-          const isActive = tab === activeTab
-          const isFirst = i === 0
-          const isLast = i === TIME_TABS.length - 1
-          return (
-            <div
-              key={tab}
-              onClick={() => onTabChange(tab)}
-              style={{
-                background: isActive ? css.brand : css.surface,
-                borderTop: `0.8px solid ${css.border}`,
-                borderBottom: `0.8px solid ${css.border}`,
-                borderLeft: isFirst ? `0.8px solid ${css.border}` : 'none',
-                borderRight: `0.8px solid ${css.border}`,
-                borderRadius: isFirst ? '4px 0 0 4px' : isLast ? '0 4px 4px 0' : 0,
-                padding: '0 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{
-                fontFamily: font.body,
-                fontSize: 12,
-                fontWeight: isActive ? 700 : 400,
-                color: isActive ? css.surface : css.textTertiary,
-                whiteSpace: 'nowrap',
-              }}>
-                {tab}
-              </span>
-              {isLast && <CaretDownIcon color={css.textTertiary} />}
-            </div>
-          )
-        })}
-      </div>
+      {/* Assignments are live state — historical rosters aren't kept here */}
+      <LiveIndicator tooltipBody={<>Assignments reflect current state. Use <strong style={{ color: css.textPrimary }}>Queue Monitor</strong> for historical views.</>} />
     </div>
   )
 }
@@ -166,8 +92,15 @@ function DaysPill({ days }: { days: number }) {
 
 // ─── Queue Load Bar ───────────────────────────────────────────────────────────
 
-function QueueLoadBar({ loans }: { loans: number }) {
-  const fillPct = Math.min((loans / 160) * 100, 100)
+function QueueLoadBar({ loans }: { loans: number | null }) {
+  if (loans == null) {
+    return (
+      <span style={{ fontFamily: font.body, fontSize: 9, fontWeight: 700, color: css.textTertiary, letterSpacing: '0.45px' }}>
+        Just assigned
+      </span>
+    )
+  }
+  const fillPct = Math.min((loans / 250) * 100, 100)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: 94 }}>
       <span style={{
@@ -192,35 +125,29 @@ function QueueLoadBar({ loans }: { loans: number }) {
   )
 }
 
-// ─── Assigned Queue Dropdown ──────────────────────────────────────────────────
+// ─── Assigned Queue Pill ──────────────────────────────────────────────────────
 
-function AssignedQueueDrop({ queue }: { queue: string }) {
+function AssignedQueuePill({ queue, isNew }: { queue: string; isNew?: boolean }) {
   return (
-    <div style={{
+    <span style={{
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 4,
-      background: css.surfacePage,
+      gap: 6,
+      background: isNew ? 'var(--brand-light)' : css.surfacePage,
+      border: isNew ? '0.8px solid var(--brand-mid)' : 'none',
       borderRadius: 100,
-      paddingLeft: 12,
-      paddingRight: 4,
+      padding: '0 12px',
       height: 24,
-      cursor: 'pointer',
+      fontFamily: font.body,
+      fontSize: 9,
+      fontWeight: 700,
+      color: isNew ? 'var(--brand-dark)' : css.textSecondary,
+      letterSpacing: '0.45px',
+      whiteSpace: 'nowrap',
     }}>
-      <span style={{
-        fontFamily: font.body,
-        fontSize: 9,
-        fontWeight: 700,
-        color: css.textSecondary,
-        letterSpacing: '0.45px',
-        whiteSpace: 'nowrap',
-      }}>
-        {queue}
-      </span>
-      <div style={{ width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CaretDownIcon />
-      </div>
-    </div>
+      {queue}
+      {isNew && <span style={{ letterSpacing: '0.4px' }}>· NEW</span>}
+    </span>
   )
 }
 
@@ -248,39 +175,57 @@ function QueueChip({ label }: { label: string }) {
   )
 }
 
-// ─── Table Data ───────────────────────────────────────────────────────────────
+// ─── Roster rows ──────────────────────────────────────────────────────────────
 
-type Specialist = {
+type RosterRow = {
   name: string
   days: number
-  loans: number
+  loans: number | null
   assignedQueue: string
   trainedQueues: string[]
+  isNew: boolean
 }
 
-const specialists: Specialist[] = [
-  { name: 'Simone Adeyemi', days: 3,  loans: 148, assignedQueue: 'Refinance',              trainedQueues: ['Refinance', 'Purchase agreement', 'Priority escalation'] },
-  { name: 'Theo Bateman',   days: 5,  loans: 141, assignedQueue: 'Refinance',              trainedQueues: ['Refinance', 'Employment verification'] },
-  { name: 'Steph Curry',    days: 10, loans: 82,  assignedQueue: 'Refinance',              trainedQueues: ['Refinance', 'Title & Settlement', 'Condo Eligibility'] },
-  { name: 'Draymond Green', days: 12, loans: 31,  assignedQueue: 'Refinance',              trainedQueues: ['Refinance', 'Payoff'] },
-  { name: 'Jordan Marks',   days: 18, loans: 27,  assignedQueue: 'Refinance',              trainedQueues: ['Refinance', 'Broker'] },
-  { name: 'Chris Navarro',  days: 7,  loans: 76,  assignedQueue: 'Refinance',              trainedQueues: ['Refinance', 'Purchase agreement'] },
-  { name: 'Priya Okonkwo',  days: 22, loans: 91,  assignedQueue: 'Employment verification', trainedQueues: ['Employment verification', 'Refinance'] },
-  { name: 'Yemi Osei',      days: 9,  loans: 64,  assignedQueue: 'Employment verification', trainedQueues: ['Employment verification', 'Refinance'] },
-  { name: 'Dana Reyes',     days: 25, loans: 80,  assignedQueue: 'Employment verification', trainedQueues: ['Employment verification', 'Refinance', 'Priority escalation'] },
-  { name: 'Marcus Webb',    days: 11, loans: 12,  assignedQueue: 'Employment verification', trainedQueues: ['Employment verification', 'Refinance'] },
-]
+function buildRows(transfers: string[]): RosterRow[] {
+  // Scope: everyone assigned to or trained for Refinance.
+  const relevant = team.filter((m) => m.assignedQueue === 'Refinance' || m.trainedQueues.includes('Refinance'))
+  const loadByName = new Map<string, number>()
+  const queuesInvolved = [...new Set(relevant.map((m) => m.assignedQueue))]
+  for (const q of queuesInvolved) {
+    for (const w of getWorkloads(q)) loadByName.set(`${q}:${w.name}`, w.loans)
+  }
+  const rows = relevant.map((m: TeamMember): RosterRow => {
+    const isNew = transfers.includes(m.name)
+    return {
+      name: m.name,
+      days: isNew ? 0 : m.daysInQueue,
+      loans: isNew ? null : loadByName.get(`${m.assignedQueue}:${m.name}`) ?? null,
+      assignedQueue: isNew ? 'Refinance' : m.assignedQueue,
+      trainedQueues: m.trainedQueues,
+      isNew,
+    }
+  })
+  // Refinance-assigned first (new arrivals at the top), then trained-elsewhere.
+  return rows.sort((a, b) => {
+    if (a.isNew !== b.isNew) return a.isNew ? -1 : 1
+    const aRef = a.assignedQueue === 'Refinance'
+    const bRef = b.assignedQueue === 'Refinance'
+    if (aRef !== bRef) return aRef ? -1 : 1
+    return (b.loans ?? 0) - (a.loans ?? 0)
+  })
+}
 
 // ─── Roster Table ─────────────────────────────────────────────────────────────
 
 function RosterTable({
-  activeTab,
-  onApplyTransfer,
+  rows,
+  onMoveSpecialists,
 }: {
-  activeTab: string
-  onApplyTransfer: () => void
+  rows: RosterRow[]
+  onMoveSpecialists: () => void
 }) {
-  const isRealTime = activeTab === 'Real Time'
+  const assignedCount = rows.filter((r) => r.assignedQueue === 'Refinance').length
+  const trainedCount = rows.length - assignedCount
 
   const thStyle: React.CSSProperties = {
     fontFamily: font.body,
@@ -306,75 +251,35 @@ function RosterTable({
         justifyContent: 'space-between',
         borderBottom: `1px solid ${css.border}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{
-            fontFamily: font.body,
-            fontSize: 13,
-            fontWeight: 500,
-            color: css.textSecondary,
-          }}>
-            6 specialists assigned to Refinance, 4 trained
-          </span>
-          {/* Move Specialists pill */}
-          <span style={{
-            display: 'inline-flex',
+        <span style={{
+          fontFamily: font.body,
+          fontSize: 13,
+          fontWeight: 500,
+          color: css.textSecondary,
+        }}>
+          {assignedCount} specialists assigned to Refinance · {trainedCount} more trained
+        </span>
+
+        <button
+          onClick={onMoveSpecialists}
+          style={{
+            display: 'flex',
             alignItems: 'center',
-            background: 'var(--info-light)',
-            border: '1px solid #afbcd0',
-            borderRadius: 100,
-            padding: '0 8px',
-            height: 23,
+            gap: 4,
+            background: css.brand,
+            border: 'none',
+            borderRadius: 6,
+            padding: '6px 12px',
+            cursor: 'pointer',
             fontFamily: font.body,
             fontSize: 12,
             fontWeight: 700,
-            color: 'var(--info)',
-            cursor: 'pointer',
+            color: 'var(--text-inverse)',
             whiteSpace: 'nowrap',
-          }}>
-            Move Specialists
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {isRealTime && (
-            <button
-              onClick={onApplyTransfer}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                background: css.brand,
-                border: 'none',
-                borderRadius: 6,
-                padding: '6px 12px',
-                cursor: 'pointer',
-                fontFamily: font.body,
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text-inverse)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Apply Transfer
-            </button>
-          )}
-          <button style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            background: css.surfaceMuted,
-            border: `0.8px solid ${css.border}`,
-            borderRadius: 6,
-            padding: '6px 10px',
-            cursor: 'pointer',
-            fontFamily: font.body,
-            fontSize: 11,
-            color: css.textSecondary,
-          }}>
-            <ColumnsIcon />
-            Columns
-          </button>
-        </div>
+          }}
+        >
+          Move specialists
+        </button>
       </div>
 
       {/* Column headers */}
@@ -386,9 +291,8 @@ function RosterTable({
         gap: 0,
         background: css.surfacePage,
       }}>
-        <div style={{ flex: '0 0 180px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ flex: '0 0 180px' }}>
           <span style={thStyle}>Specialist</span>
-          <SortAscIcon />
         </div>
         <div style={{ flex: '0 0 100px' }}>
           <span style={thStyle}>Status</span>
@@ -405,15 +309,16 @@ function RosterTable({
       </div>
 
       {/* Rows */}
-      {specialists.map((s, i) => (
+      {rows.map((s, i) => (
         <div
           key={s.name}
+          className={s.isNew ? 'fade-up' : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
             padding: '10px 22px',
-            borderBottom: i < specialists.length - 1 ? `1px solid ${css.border}` : 'none',
-            background: css.surface,
+            borderBottom: i < rows.length - 1 ? `1px solid ${css.border}` : 'none',
+            background: s.isNew ? 'rgba(98,148,96,0.05)' : css.surface,
             gap: 0,
           }}
         >
@@ -423,13 +328,19 @@ function RosterTable({
             </span>
           </div>
           <div style={{ flex: '0 0 100px' }}>
-            <DaysPill days={s.days} />
+            {s.isNew ? (
+              <span style={{ fontFamily: font.body, fontSize: 9, fontWeight: 700, color: 'var(--brand-dark)', letterSpacing: '0.45px' }}>
+                Just assigned
+              </span>
+            ) : (
+              <DaysPill days={s.days} />
+            )}
           </div>
           <div style={{ flex: '0 0 130px' }}>
             <QueueLoadBar loans={s.loans} />
           </div>
           <div style={{ flex: '0 0 200px' }}>
-            <AssignedQueueDrop queue={s.assignedQueue} />
+            <AssignedQueuePill queue={s.assignedQueue} isNew={s.isNew} />
           </div>
           <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {s.trainedQueues.map((q) => (
@@ -443,26 +354,11 @@ function RosterTable({
       <div style={{
         padding: '12px 22px',
         borderTop: `1px solid ${css.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         background: css.surfacePage,
       }}>
         <span style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary }}>
-          Showing <strong style={{ color: css.textSecondary }}>10</strong> of <strong style={{ color: css.textSecondary }}>14</strong>
+          Showing all <strong style={{ color: css.textSecondary }}>{rows.length}</strong> specialists assigned to or trained for Refinance
         </span>
-        <button style={{
-          fontFamily: font.body,
-          fontSize: 12,
-          fontWeight: 600,
-          color: css.brand,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: 0,
-        }}>
-          View all
-        </button>
       </div>
     </div>
   )
@@ -471,19 +367,31 @@ function RosterTable({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Roster() {
-  const [activeTab, setActiveTab] = useState('Real Time')
   const [showModal, setShowModal] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const { transfers, applyTransfer, markActioned } = useQueueContext()
+  const rows = buildRows(transfers)
+
+  function handleApply(count: number, source: string, names: string[]) {
+    setShowModal(false)
+    applyTransfer(names)
+    markActioned('Refinance')
+    setToast(`${count} specialist${count !== 1 ? 's' : ''} moved from ${source} to Refinance`)
+    setTimeout(() => setToast(null), 4000)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HeaderBar activeTab={activeTab} onTabChange={setActiveTab} />
-      <RosterTable activeTab={activeTab} onApplyTransfer={() => setShowModal(true)} />
+      <HeaderBar />
+      <RosterTable rows={rows} onMoveSpecialists={() => setShowModal(true)} />
       {showModal && (
         <RosterModal
+          target="Refinance"
           onClose={() => setShowModal(false)}
-          onApply={() => console.log('Transfer applied')}
+          onApply={handleApply}
         />
       )}
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   )
 }

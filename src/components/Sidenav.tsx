@@ -100,7 +100,7 @@ export default function Sidenave() {
       <Divider />
 
       {/* Nav items */}
-      <div style={{
+      <nav aria-label="Primary" style={{
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
@@ -109,12 +109,15 @@ export default function Sidenave() {
         boxSizing: 'border-box',
       }}>
         {navItems.map(({ path, label, viewBox, d }) => {
-          const isActive = pathname === path
+          // /loans is a Queue Monitor drill-down, so its nav item stays lit there.
+          const isActive = pathname === path || (path === '/queue-monitor' && pathname === '/loans')
           const strokeColor = isActive ? 'var(--brand)' : 'var(--text-tertiary)'
           return (
             <div key={path} style={{ position: 'relative', display: 'flex', justifyContent: 'center' }} className="nav-item-wrap">
               <Link
                 to={path}
+                aria-label={label}
+                aria-current={isActive ? 'page' : undefined}
                 onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--surface-muted)' }}
                 onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                 style={{
@@ -130,7 +133,7 @@ export default function Sidenave() {
                   transition: 'background 0.18s ease',
                 }}
               >
-                <svg width="20" height="20" fill="none" viewBox={viewBox}>
+                <svg width="20" height="20" fill="none" viewBox={viewBox} aria-hidden="true">
                   <path d={d} style={{ stroke: strokeColor }} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                 </svg>
               </Link>
@@ -140,7 +143,7 @@ export default function Sidenave() {
             </div>
           )
         })}
-      </div>
+      </nav>
 
       <Divider />
       <div style={{ padding: '8px 8px 12px', display: 'flex', justifyContent: 'center', width: '100%', boxSizing: 'border-box' }}>
