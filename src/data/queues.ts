@@ -615,11 +615,13 @@ export function getPeriodData(title: string, period: PeriodKey): PeriodData {
       variant: m.atRiskType === 'danger' ? 'critical' : 'warning',
       cta: { label: 'See loan details', action: 'loans' },
     })
+    // Single-affordance: the Capacity card's button is the one canonical way to
+    // open the reassign modal; this CTA just points there.
     if (growing) alerts.push({
       title: 'Inflow outpacing outflow for 4 consecutive days',
       body: 'Rebalance specialist load.',
       variant: 'critical',
-      ...(staffable ? { cta: { label: 'Reassign Staff', action: 'reassign' as const } } : {}),
+      ...(staffable ? { cta: { label: 'Go to Reassign Staff', action: 'reassign' as const } } : {}),
     })
     else alerts.push({
       title: 'Outflow ahead of inflow today',

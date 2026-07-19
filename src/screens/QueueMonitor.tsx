@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import RosterModal from '../components/RosterModal'
 import LedgerChart from '../components/LedgerChart'
@@ -703,7 +703,7 @@ function SpecialistRow({ name, loans, fill, queue, isNew = false }: { name: stri
   )
 }
 
-function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign, capacityData }: { queue: string; onReassign: () => void; transferred: string[]; isRealTime: boolean; canReassign: boolean; capacityData: PeriodData['capacity'] }) {
+function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign, capacityData, highlight, cardRef, buttonRef }: { queue: string; onReassign: () => void; transferred: string[]; isRealTime: boolean; canReassign: boolean; capacityData: PeriodData['capacity']; highlight: boolean; cardRef: React.Ref<HTMLDivElement>; buttonRef: React.Ref<HTMLButtonElement> }) {
   const [search, setSearch] = useState('')
   const workloads = getWorkloads(queue)
   const activeCount = workloads.length + transferred.length
@@ -714,9 +714,11 @@ function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign,
   )
 
   return (
-    <div style={{
+    <div ref={cardRef} style={{
       background: css.surface,
-      border: `1px solid ${css.border}`,
+      border: `1px solid ${highlight ? css.brand : css.border}`,
+      boxShadow: highlight ? '0 0 0 2px var(--brand-mid)' : 'none',
+      transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
       borderRadius: 12,
       padding: 16,
       display: 'flex',
@@ -732,6 +734,7 @@ function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign,
           <span style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary }}>{activeCount} active</span>
           {isRealTime && canReassign && (
             <button
+              ref={buttonRef}
               onClick={onReassign}
               style={{
                 background: css.brand, border: 'none', borderRadius: 6,
@@ -881,6 +884,10 @@ export default function QueueMonitor() {
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [capacityHighlight, setCapacityHighlight] = useState(false)
+  const capacityCardRef = useRef<HTMLDivElement>(null)
+  const reassignButtonRef = useRef<HTMLButtonElement>(null)
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Time-range selection lives in context so leaving for a drill-down and
   // coming back doesn't reset it.
@@ -913,6 +920,17 @@ export default function QueueMonitor() {
     setMonitorPrefs(queue, { activeTab: 'Custom', customLabel: `${formatDate(from)} – ${formatDate(to)}` })
   }
 
+  // The alert CTA points at the canonical control instead of duplicating it:
+  // scroll the Capacity card into view, flash it, and put focus on its
+  // Reassign Staff button.
+  function pointToReassign() {
+    capacityCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setCapacityHighlight(true)
+    if (highlightTimer.current) clearTimeout(highlightTimer.current)
+    setTimeout(() => reassignButtonRef.current?.focus({ preventScroll: true }), 400)
+    highlightTimer.current = setTimeout(() => setCapacityHighlight(false), 1800)
+  }
+
   function handleApply(count: number, source: string, names: string[]) {
     setShowModal(false)
     applyTransfer(names)
@@ -942,10 +960,10 @@ export default function QueueMonitor() {
       {/* Main row: left col (alerts + chart) | right col (capacity + rankings) */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
-          <AlertsCard onReassign={() => setShowModal(true)} onRoster={() => navigate('/roster')} onLoans={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })} transferred={transferred} isRealTime={isRealTime} periodAlerts={period.alerts} chartData={period.chart} />
+          <AlertsCard onReassign={pointToReassign} onRoster={() => navigate('/roster')} onLoans={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })} transferred={transferred} isRealTime={isRealTime} periodAlerts={period.alerts} chartData={period.chart} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <CapacityCard queue={queue} onReassign={() => setShowModal(true)} transferred={transferred} isRealTime={isRealTime} canReassign={canReassign} capacityData={period.capacity} />
+          <CapacityCard queue={queue} onReassign={() => setShowModal(true)} transferred={transferred} isRealTime={isRealTime} canReassign={canReassign} capacityData={period.capacity} highlight={capacityHighlight} cardRef={capacityCardRef} buttonRef={reassignButtonRef} />
           <RankingsCard />
         </div>
       </div>
