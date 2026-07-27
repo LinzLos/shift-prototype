@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Toast from '../components/Toast'
 import { useQueueContext } from '../QueueContext'
 import { getMetrics } from '../data/queues'
@@ -455,6 +456,7 @@ function ConditionBuilder({
   onRun: () => void
   onReset: () => void
 }) {
+  const navigate = useNavigate()
   const [addingNew, setAddingNew] = useState(false)
   const isRunning = phase === 'running'
   const canRun = conditions.length > 0 && !isRunning
@@ -492,7 +494,19 @@ function ConditionBuilder({
         <div>
           <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.danger, lineHeight: 1.25 }}>{QUEUE}</div>
           <div style={{ fontFamily: font.body, fontSize: 13, color: css.danger, lineHeight: 1.4 }}>
-            has {metrics.urgent} loans within 5 days of closing. Testing time-based conditions may help reprioritize before cutoff.
+            has{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/loans', { state: { queue: QUEUE, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })}
+              style={{
+                background: 'none', border: 'none', padding: 0, margin: 0,
+                font: 'inherit', color: 'inherit', cursor: 'pointer',
+                textDecoration: 'underline', textUnderlineOffset: 2, fontWeight: 700,
+              }}
+            >
+              {metrics.urgent} loans
+            </button>
+            {' '}within 5 days of closing. Testing time-based conditions may help reprioritize before cutoff.
           </div>
         </div>
       </div>
