@@ -33,3 +33,30 @@ Lindsay (sole maintainer across vendor + consumers).
 - [ ] Row added to `tiny-wire/DESIGN-SYSTEM-HUB.md` Promotion-candidates table: "Ledger area/line chart (incl. dual-axis) — reinvented 2× in shift".
 - [ ] Candidate assessment (above) recorded on this issue, labeled `ds:candidate`.
 - [ ] a11y debt items captured as the pre-promotion checklist.
+
+## Spec update — line weights & area wash
+
+Adjusted in `src/components/LedgerChart.tsx` to establish clearer visual hierarchy across variants. **API unchanged** — same `series[] {label, values, color, variant, axis?, format?}` shape, same four variants (`area` / `line` / `dashed` / `reference`). Only the rendered weight/opacity defaults changed. Applied at the shared component level so every chart on the site (Queue Monitor flow, Performance throughput) picks the change up automatically — no per-consumer divergence.
+
+### Rationale
+Under the previous defaults the actual/story line (`area`, `line`) and the guide lines (`dashed`, `reference`) rendered at similar weights, so all series competed for attention. The tuned defaults put the story line first — the reader's eye lands on the actual data — and let guide lines recede to secondary context. The area fill becomes a subtle wash beneath the line rather than a shadow that reads as its own shape.
+
+### Changes
+| Element | Before | After | Role |
+|---|---|---|---|
+| `area` / `line` stroke width | 2 | **1.5** | Story line — thinner but still the visual hero via color contrast |
+| `dashed` stroke width | 1.5 | **1** | Secondary series (e.g. handle-time avg) recedes |
+| `dashed` dash pattern | `6 4` | **`3 3`** | Tighter dashes read quieter |
+| `reference` stroke width | 1.5 | **1** | Target / guide line barely visible until the actual line meets it |
+| `reference` dash pattern | `4 3` | **`2 3`** | Fine-dashed whisper |
+| `area` gradient top-stop opacity | 0.22 | **0.10** | Wash, not shadow |
+| Legend swatches | mirrored old weights | mirror the new weights and use `3 3` uniformly | Swatches stay truthful to what the chart draws |
+
+### Coverage
+- `src/components/LedgerChart.tsx` — component defaults (single source).
+- Queue Monitor `PeriodData['chart']` renders (inflow/outflow/target) — inherits.
+- Performance throughput chart (loans / handle time / target pace) — inherits.
+- No new tokens introduced; existing `--chart-*` and `--border-strong` still cover the palette.
+
+### Promotion note
+When this component graduates to Tiny Wire (Layer 3 React package), these tuned defaults are the intended upstream defaults. Consumers should be able to override via props if a future case needs heavier weights, but the shipping defaults are the ones documented here.

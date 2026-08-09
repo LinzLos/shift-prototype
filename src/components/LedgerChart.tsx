@@ -146,8 +146,8 @@ export default function LedgerChart({
                 <line
                   x1="0" y1="4" x2="16" y2="4"
                   stroke={stroke}
-                  strokeWidth={s.variant === 'area' || s.variant === 'line' ? 2 : 1.5}
-                  strokeDasharray={dashed ? '4 3' : undefined}
+                  strokeWidth={s.variant === 'area' || s.variant === 'line' ? 1.5 : 1}
+                  strokeDasharray={dashed ? '3 3' : undefined}
                   strokeLinecap="round"
                 />
               </svg>
@@ -172,7 +172,7 @@ export default function LedgerChart({
             {series.map((s, si) =>
               s.variant === 'area' ? (
                 <linearGradient key={si} id={`${uid}-area-${si}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={s.color} stopOpacity={0.22} />
+                  <stop offset="0%" stopColor={s.color} stopOpacity={0.10} />
                   <stop offset="100%" stopColor={s.color} stopOpacity={0} />
                 </linearGradient>
               ) : null,
@@ -200,7 +200,7 @@ export default function LedgerChart({
               const isRef = s.variant === 'reference'
               const dashed = s.variant === 'dashed' || isRef
               const stroke = isRef ? 'var(--border-strong)' : s.color
-              const sw = s.variant === 'area' || s.variant === 'line' ? 2 : 1.5
+              const sw = s.variant === 'area' || s.variant === 'line' ? 1.5 : 1
 
               return (
                 <g key={`s-${i}`}>
@@ -221,7 +221,7 @@ export default function LedgerChart({
                     fill="none"
                     stroke={stroke}
                     strokeWidth={sw}
-                    strokeDasharray={dashed ? (isRef ? '4 3' : '6 4') : undefined}
+                    strokeDasharray={dashed ? (isRef ? '2 3' : '3 3') : undefined}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     initial={animate ? (dashed ? { opacity: 0 } : { pathLength: 0 }) : false}
