@@ -4,7 +4,7 @@ import RosterModal from '../components/RosterModal'
 import LedgerChart from '../components/LedgerChart'
 import QueueSelector from '../components/QueueSelector'
 import Toast from '../components/Toast'
-import { useQueueContext } from '../QueueContext'
+import { transfersInto, useQueueContext } from '../QueueContext'
 import {
   getPeriodData, getRiskLine, getWorkloads,
   PERIOD_KEYS, type PeriodAlert, type PeriodChart, type PeriodData, type PeriodKey,
@@ -695,9 +695,11 @@ function SpecialistRow({ name, loans, fill, queue, isNew = false }: { name: stri
   )
 }
 
-function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign, capacityData, highlight, cardRef, buttonRef }: { queue: string; onReassign: () => void; transferred: string[]; isRealTime: boolean; canReassign: boolean; capacityData: PeriodData['capacity']; highlight: boolean; cardRef: React.Ref<HTMLDivElement>; buttonRef: React.Ref<HTMLButtonElement> }) {
+function CapacityCard({ queue, onReassign, transferred, movedAway, isRealTime, capacityData, highlight, cardRef, buttonRef }: { queue: string; onReassign: () => void; transferred: string[]; movedAway: string[]; isRealTime: boolean; capacityData: PeriodData['capacity']; highlight: boolean; cardRef: React.Ref<HTMLDivElement>; buttonRef: React.Ref<HTMLButtonElement> }) {
   const [search, setSearch] = useState('')
-  const workloads = getWorkloads(queue)
+  // Ledger-applied: specialists reassigned away from this queue drop off;
+  // this session's arrivals are pinned on top as NEW.
+  const workloads = getWorkloads(queue).filter((w) => !movedAway.includes(w.name))
   const activeCount = workloads.length + transferred.length
   const capacityGap = Math.max(0, capacityData.gap - transferred.length * 5)
   const gapAtRisk = capacityGap > 30
@@ -724,7 +726,7 @@ function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign,
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontFamily: font.body, fontSize: 11, color: css.textTertiary }}>{activeCount} active</span>
-          {isRealTime && canReassign && (
+          {isRealTime && (
             <button
               ref={buttonRef}
               onClick={onReassign}
@@ -871,17 +873,22 @@ function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign,
 export default function QueueMonitor() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { selectedQueue, setSelectedQueue, markActioned, transfers, applyTransfer, monitorPrefs, setMonitorPrefs } = useQueueContext()
+  const { selectedQueue, setSelectedQueue, markActioned, reassignments, applyTransfer, monitorPrefs, setMonitorPrefs } = useQueueContext()
   // Context is the sole source of truth for the queue in view — that keeps the
   // header QueueSelector, Simulation, Performance, and Roster in lockstep.
-  // Route state (from Overview's card click) only *seeds* context on arrival;
-  // it is not read on every render, so a dropdown pick isn't shadowed by the
-  // stale hitchhiker value.
+  // Route state (from Overview's card click or Loans' back button) seeds
+  // context exactly once, then is cleared from history — so a later dropdown
+  // pick is never overridden by the stale hitchhiker value.
   const routeQueue = (location.state as { queue?: string } | null)?.queue
   const queue: string = selectedQueue
   useEffect(() => {
-    if (routeQueue && routeQueue !== selectedQueue) setSelectedQueue(routeQueue)
-  }, [routeQueue, selectedQueue, setSelectedQueue])
+    if (routeQueue) {
+      setSelectedQueue(routeQueue)
+      navigate(location.pathname, { replace: true, state: null })
+    }
+    // Consuming route state must not re-run when the selection changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeQueue])
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -896,9 +903,9 @@ export default function QueueMonitor() {
   const activeTab = prefs.activeTab
   const customLabel = prefs.customLabel
   const isRealTime = activeTab === 'Real Time'
-  // Transfers target Refinance — that's where the roster and cross-training data live.
-  const canReassign = queue === 'Refinance'
-  const transferred = canReassign ? transfers : []
+  // Only this queue's arrivals show here — the ledger keys transfers by target.
+  const transferred = transfersInto(queue, reassignments)
+  const movedAway = Object.keys(reassignments).filter((n) => reassignments[n] !== queue)
 
   const period = getPeriodData(queue, (PERIOD_KEYS as string[]).includes(activeTab) ? activeTab as PeriodKey : 'Custom')
 
@@ -934,7 +941,7 @@ export default function QueueMonitor() {
 
   function handleApply(count: number, source: string, names: string[]) {
     setShowModal(false)
-    applyTransfer(names)
+    applyTransfer(names, queue)
     markActioned(queue)
     setToast(`${count} specialist${count !== 1 ? 's' : ''} moved from ${source} to ${queue}`)
     setTimeout(() => setToast(null), 4000)
@@ -961,10 +968,10 @@ export default function QueueMonitor() {
       {/* Main row: left col (alerts + chart) | right col (capacity + rankings) */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
-          <AlertsCard onReassign={pointToReassign} onRoster={() => navigate('/roster')} onLoans={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })} transferred={transferred} isRealTime={isRealTime} periodAlerts={period.alerts} chartData={period.chart} />
+          <AlertsCard onReassign={pointToReassign} onRoster={() => navigate('/roster')} onLoans={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert', from: 'queue-monitor' } })} transferred={transferred} isRealTime={isRealTime} periodAlerts={period.alerts} chartData={period.chart} />
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <CapacityCard queue={queue} onReassign={() => setShowModal(true)} transferred={transferred} isRealTime={isRealTime} canReassign={canReassign} capacityData={period.capacity} highlight={capacityHighlight} cardRef={capacityCardRef} buttonRef={reassignButtonRef} />
+          <CapacityCard queue={queue} onReassign={() => setShowModal(true)} transferred={transferred} movedAway={movedAway} isRealTime={isRealTime} capacityData={period.capacity} highlight={capacityHighlight} cardRef={capacityCardRef} buttonRef={reassignButtonRef} />
           <RankingsCard />
         </div>
       </div>

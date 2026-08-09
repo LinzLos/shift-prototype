@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import { getSourceQueues, type QueueHealth, type SourceQueue } from '../data/queues'
-import { assignedTo } from '../data/team'
-import { useQueueContext } from '../QueueContext'
+import { useEffect, useRef, useState } from 'react'
+import { getSourceQueues, rosterFor, type QueueHealth, type SourceQueue } from '../data/team'
+import { transfersInto, useQueueContext } from '../QueueContext'
 
 const css = {
   brand: 'var(--brand)',
@@ -653,12 +652,49 @@ type RosterModalProps = {
 }
 
 export default function RosterModal({ target = 'Refinance', onClose, onApply }: RosterModalProps) {
-  const { transfers } = useQueueContext()
-  const sourceQueues = getSourceQueues(target, transfers)
-  const currentNames = [...transfers, ...assignedTo(target).map((m) => m.name)]
+  const { reassignments } = useQueueContext()
+  const sourceQueues = getSourceQueues(target, reassignments)
+  // One headcount, ledger-applied: the target's derived roster minus anyone
+  // moved away, with this session's arrivals listed first (no duplicates —
+  // arrivals come from other queues' rosters by construction).
+  const baseNames = rosterFor(target).map((m) => m.name).filter((n) => (reassignments[n] ?? target) === target)
+  const incoming = transfersInto(target, reassignments).filter((n) => !baseNames.includes(n))
+  const currentNames = [...incoming, ...baseNames]
   const initial: SourceQueue | undefined = sourceQueues.find((q) => q.suggested) ?? sourceQueues[0]
   const [source, setSource] = useState<SourceQueue | undefined>(initial)
   const [staged, setStaged] = useState<string[]>([])
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Keyboard support for the dialog: Escape closes, Tab cycles inside it, and
+  // focus starts on the dialog itself so keyboard users land in the modal.
+  useEffect(() => {
+    dialogRef.current?.focus()
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab' || !dialogRef.current) return
+      const focusables = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )).filter((el) => !el.hasAttribute('disabled'))
+      if (focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement as HTMLElement | null
+      if (e.shiftKey && (active === first || active === dialogRef.current)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleSelectSource(q: SourceQueue) {
     setSource(q)
@@ -689,9 +725,9 @@ export default function RosterModal({ target = 'Refinance', onClose, onApply }: 
           zIndex: 1000,
         }}
       >
-        <div onClick={(e) => e.stopPropagation()} className="modal-enter" style={{
+        <div onClick={(e) => e.stopPropagation()} className="modal-enter" role="dialog" aria-label="No specialists left to transfer" ref={dialogRef} tabIndex={-1} style={{
           background: css.surfacePage, borderRadius: 10, padding: 32,
-          maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12,
+          maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 12, outline: 'none',
         }}>
           <span style={{ fontFamily: font.heading, fontSize: 16, fontWeight: 700, color: css.textPrimary }}>
             No specialists left to transfer
@@ -726,11 +762,14 @@ export default function RosterModal({ target = 'Refinance', onClose, onApply }: 
         onClick={(e) => e.stopPropagation()}
         className="modal-enter"
         role="dialog"
+        aria-modal="true"
         aria-label={`Move specialists into ${target}`}
+        ref={dialogRef}
+        tabIndex={-1}
         style={{
           background: css.surfacePage, borderRadius: 10,
           padding: 48, width: 896, maxWidth: 'calc(100vw - 48px)',
-          display: 'flex', flexDirection: 'column', gap: 20,
+          display: 'flex', flexDirection: 'column', gap: 20, outline: 'none',
         }}
       >
         <SummaryBar source={source} stagedCount={staged.length} target={target} targetCurrent={currentNames.length} />

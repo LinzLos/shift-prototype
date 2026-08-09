@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import QueueSelector from '../components/QueueSelector'
 import Toast from '../components/Toast'
-import { useQueueContext } from '../QueueContext'
+import { EMPTY_SCENARIO, useQueueContext } from '../QueueContext'
 import { getMetrics } from '../data/queues'
-import { insightFor, runSimulation, type SimResult } from '../data/simulation'
+import { insightFor, runSimulation, type ConditionData, type SimResult } from '../data/simulation'
 
 // All Simulation copy derives from the selected queue's record so its numbers
 // match the Overview card and Queue Monitor. `queue` / `metrics` are read from
@@ -30,18 +30,10 @@ const font = {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+// ConditionData lives in data/simulation.ts so QueueContext can persist
+// scenarios per queue (reversible-nav: a drill-down must not lose the work).
 
 type Phase = 'build' | 'running' | 'results'
-
-type ConditionData = {
-  id: string
-  label: string   // matches Template.label for deduplication
-  type: string
-  attribute: string
-  comparator: string
-  current: string
-  proposed: string
-}
 
 type Template = {
   type: string
@@ -268,9 +260,18 @@ function ConditionCard({
 
           <ArrowRightIcon />
 
-          {/* Proposed — click to edit */}
+          {/* Proposed — click or Enter/Space to edit (keyboard-reachable) */}
           <div
             onClick={() => !editing && setEditing(true)}
+            role="button"
+            tabIndex={editing ? -1 : 0}
+            aria-label={`Edit proposed ${condition.label} threshold, currently ${condition.proposed}`}
+            onKeyDown={(e) => {
+              if (!editing && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                setEditing(true)
+              }
+            }}
             style={{
               background: 'var(--brand-light)', border: `1px solid ${editing ? 'var(--brand)' : 'var(--brand-mid)'}`,
               borderRadius: 16, padding: 12, minWidth: 120, cursor: editing ? 'default' : 'pointer',
@@ -498,7 +499,7 @@ function ConditionBuilder({
             has{' '}
             <button
               type="button"
-              onClick={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })}
+              onClick={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert', from: 'simulation' } })}
               style={{
                 background: 'none', border: 'none', padding: 0, margin: 0,
                 font: 'inherit', color: 'inherit', cursor: 'pointer',
@@ -966,28 +967,55 @@ function SimulationResults({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Simulation() {
-  const { selectedQueue, markActioned } = useQueueContext()
+  const { selectedQueue, markActioned, simScenarios, setSimScenario } = useQueueContext()
+  const location = useLocation()
+  const navigate = useNavigate()
   const queue = selectedQueue
   const metrics = useMemo(() => getMetrics(queue), [queue])
   const activeFmt = useMemo(() => metrics.active.toLocaleString('en-US'), [metrics])
 
-  const [phase, setPhase]       = useState<Phase>('build')
-  const [conditions, setConditions] = useState<ConditionData[]>([])
+  // The scenario (conditions, phase, saved/applied) lives in context, keyed by
+  // queue — drilling into Loans and coming back restores exactly where you
+  // were, and each queue keeps its own work-in-progress. Only the transient
+  // run animation stays local.
+  const scenario = simScenarios[queue] ?? EMPTY_SCENARIO
+  const { conditions, saved, applied } = scenario
+  const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState(0)
   const [resultsKey, setResultsKey] = useState(0)
-  const [saved, setSaved] = useState(false)
-  const [applied, setApplied] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const phase: Phase = running ? 'running' : scenario.phase
 
-  // Switching queue mid-flight would show old-queue results under a new-queue
-  // title. Reset to a clean build state so the demo stays coherent.
+  function patchScenario(patch: Partial<typeof scenario>) {
+    setSimScenario(queue, { ...scenario, ...patch })
+  }
+
+  // Hydrate a shared scenario from the URL (?scenario=...) — the Share button
+  // encodes the conditions, so the link actually reproduces the setup.
   useEffect(() => {
-    setConditions([])
-    setPhase('build')
-    setProgress(0)
-    setSaved(false)
-    setApplied(false)
-  }, [queue])
+    const param = new URLSearchParams(location.search).get('scenario')
+    if (!param) return
+    try {
+      const parsed = JSON.parse(param) as { label: string; proposed: string }[]
+      const hydrated: ConditionData[] = parsed
+        .map((c, i) => {
+          const t = TEMPLATES.find((tpl) => tpl.label === c.label)
+          if (!t || typeof c.proposed !== 'string') return null
+          return {
+            id: `${t.label}-shared-${i}`,
+            label: t.label, type: t.type, attribute: t.attribute,
+            comparator: t.comparator, current: t.current,
+            proposed: c.proposed.slice(0, 40),
+          }
+        })
+        .filter((c): c is ConditionData => c !== null)
+      if (hydrated.length > 0) {
+        setSimScenario(queue, { conditions: hydrated, phase: 'build', saved: false, applied: false })
+      }
+    } catch { /* malformed scenario param — ignore */ }
+    navigate('/simulation', { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Rank shifts computed from the actual condition thresholds — editing a
   // proposed value and re-running produces different results.
@@ -1002,24 +1030,27 @@ export default function Simulation() {
   }
 
   function handleSave() {
-    setSaved(true)
+    patchScenario({ saved: true })
     showToast('Scenario saved to your drafts')
   }
 
   function handleShare() {
-    try { navigator.clipboard?.writeText(window.location.href) } catch { /* clipboard unavailable */ }
+    // Encode the scenario into the link so the recipient opens the same setup.
+    const payload = JSON.stringify(conditions.map((c) => ({ label: c.label, proposed: c.proposed })))
+    const url = `${window.location.origin}/simulation?scenario=${encodeURIComponent(payload)}`
+    try { navigator.clipboard?.writeText(url) } catch { /* clipboard unavailable */ }
     showToast('Scenario link copied to clipboard')
   }
 
   function handleApplyConditions() {
-    setApplied(true)
+    patchScenario({ applied: true })
     markActioned(queue)
     showToast(`Conditions applied to ${queue}`)
   }
 
   // Progress animation when running
   useEffect(() => {
-    if (phase !== 'running') return
+    if (!running) return
     const milestones = [14, 27, 39, 52, 63, 74, 83, 91, 97, 100]
     const gaps       = [200, 180, 210, 160, 190, 230, 170, 200, 260, 420]
     const ts: ReturnType<typeof setTimeout>[] = []
@@ -1030,41 +1061,38 @@ export default function Simulation() {
       ts.push(t)
     })
     const done = setTimeout(() => {
-      setPhase('results')
+      setRunning(false)
+      patchScenario({ phase: 'results', saved: false, applied: false })
       setResultsKey(k => k + 1)
     }, cumulative + 500)
     ts.push(done)
     return () => ts.forEach(clearTimeout)
-  }, [phase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running])
 
   function handleRun() {
     setProgress(0)
-    setSaved(false)
-    setApplied(false)
-    setPhase('running')
+    setRunning(true)
   }
 
   function handleModify() {
-    setPhase('build')
+    patchScenario({ phase: 'build' })
   }
 
   function handleReset() {
-    setConditions([])
-    setSaved(false)
-    setApplied(false)
-    setPhase('build')
+    setSimScenario(queue, EMPTY_SCENARIO)
   }
 
   function addCondition(c: ConditionData) {
-    setConditions(prev => [...prev, c])
+    patchScenario({ conditions: [...conditions, c] })
   }
 
   function removeCondition(id: string) {
-    setConditions(prev => prev.filter(c => c.id !== id))
+    patchScenario({ conditions: conditions.filter(c => c.id !== id) })
   }
 
   function updateProposed(id: string, val: string) {
-    setConditions(prev => prev.map(c => c.id === id ? { ...c, proposed: val } : c))
+    patchScenario({ conditions: conditions.map(c => c.id === id ? { ...c, proposed: val } : c) })
   }
 
   return (

@@ -102,9 +102,14 @@ export default function Loans() {
   const location = useLocation()
   const navigate = useNavigate()
   const { selectedQueue, setSelectedQueue } = useQueueContext()
-  const state = (location.state as { queue?: string; days?: number; label?: string; source?: string } | null) ?? null
+  const state = (location.state as { queue?: string; days?: number; label?: string; source?: string; from?: string } | null) ?? null
   const queue = state?.queue ?? selectedQueue
   const sourceLabel = state?.source ?? null
+  // Reversible nav: the back control returns to the screen that opened this
+  // drill-down — a Simulation user must not be stranded on Queue Monitor.
+  const cameFromSimulation = state?.from === 'simulation'
+  const backLabel = cameFromSimulation ? 'Back to Simulation' : 'Back to Queue Monitor'
+  const backPath = cameFromSimulation ? '/simulation' : '/queue-monitor'
   // Keep the global queue in sync so backing out to Simulation / Performance /
   // Roster shows the same queue we drilled into.
   useEffect(() => {
@@ -160,7 +165,7 @@ export default function Loans() {
       {/* Back + heading */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button
-          onClick={() => navigate('/queue-monitor', { state: { queue } })}
+          onClick={() => navigate(backPath, { state: { queue } })}
           style={{
             display: 'flex', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -168,7 +173,7 @@ export default function Loans() {
           }}
         >
           <BackIcon />
-          Back to Queue Monitor
+          {backLabel}
         </button>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontFamily: font.heading, fontWeight: 700, fontSize: 20, letterSpacing: '-0.08px', color: css.textPrimary }}>

@@ -3,7 +3,7 @@
 // same records, so a queue's KPIs, alerts, risk lines, and loan counts agree
 // with its card by construction.
 
-import { assignedTo, transferCandidatesFor, type TeamMember } from './team'
+import { assignedTo, type TeamMember } from './team'
 
 export type Stat = { label: string; value: string; sub: string }
 export type QueueDef = {
@@ -562,7 +562,12 @@ export function getPeriodData(title: string, period: PeriodKey): PeriodData {
   const process = Math.round(m.processHours * p.processF * 10) / 10
   const net = Math.round(m.net * p.netF)
   const inflow = Math.round(m.inflow * p.inflowF)
-  const outflow = inflow + net // forces inflow − outflow parity with net
+  // The inflow − outflow = net identity holds at daily scale (Real Time, 1d),
+  // where the KPI sub displays all three together. Week/Month/Custom nets are
+  // cumulative, so deriving outflow from them can go negative — those periods
+  // chart daily rates scaled from the queue's real outflow instead.
+  const isDaily = isRT || period === '1d'
+  const outflow = isDaily ? inflow + net : Math.max(1, Math.round(m.outflow * p.inflowF))
   const backlog = -net // positive when the backlog grew
 
   const overTarget = Math.round((process - m.targetHours) * 10) / 10
@@ -608,9 +613,9 @@ export function getPeriodData(title: string, period: PeriodKey): PeriodData {
     bannerText, bannerStat, bannerTone: growing ? 'danger' : 'info',
   }
 
-  // Alerts: same numbers, tensed for the period. Staffing CTAs only exist for
-  // Refinance — the roster and reassign flows are scoped to it.
-  const staffable = title === 'Refinance'
+  // Alerts: same numbers, tensed for the period. Staffing CTAs exist for every
+  // queue — the roster and reassign flows are queue-scoped via the selector,
+  // and trainedElsewhereFor guarantees each queue has transfer candidates.
   const alerts: PeriodAlert[] = []
   if (isRT) {
     alerts.push({
@@ -625,23 +630,18 @@ export function getPeriodData(title: string, period: PeriodKey): PeriodData {
       title: 'Inflow outpacing outflow for 4 consecutive days',
       body: 'Rebalance specialist load.',
       variant: 'critical',
-      ...(staffable ? { cta: { label: 'Go to Reassign Staff', action: 'reassign' as const } } : {}),
+      cta: { label: 'Go to Reassign Staff', action: 'reassign' },
     })
     else alerts.push({
       title: 'Outflow ahead of inflow today',
       body: 'Queue is draining — no rebalance needed.',
       variant: 'warning',
     })
-    if (staffable) alerts.push({
+    alerts.push({
       title: '2 specialists consistently idle',
       body: 'Review Roster assignments.',
       variant: 'warning',
       cta: { label: 'Go to Roster', action: 'roster' },
-    })
-    else alerts.push({
-      title: `Process time ${overTarget > 0 ? `+${overTarget}h over` : 'within'} target`,
-      body: overTarget > 0 ? 'Throughput below required pace.' : 'Holding steady at current staffing.',
-      variant: overTarget > 0 ? 'critical' : 'warning',
     })
   } else {
     if (growing) alerts.push({
@@ -677,63 +677,9 @@ export function getPeriodData(title: string, period: PeriodKey): PeriodData {
 
 // ─── Reassign modal source queues ─────────────────────────────────────────────
 
-export type QueueHealth = 'healthy' | 'warning' | 'at-risk'
-export type SourceQueue = {
-  name: string
-  health: QueueHealth
-  capacityPct: number
-  specialists: TeamMember[]
-  suggested: boolean
-  suggestReason?: string
-  warningReason?: string
-}
-
-const SOURCE_QUEUE_STATUS: Record<string, { health: QueueHealth; capacityPct: number }> = {
-  'Employment History Review': { health: 'healthy', capacityPct: 62 },
-  'New Purchase Applications': { health: 'warning', capacityPct: 81 },
-  'Title & Escrow Coordination': { health: 'at-risk', capacityPct: 96 },
-  'Deed Recording': { health: 'healthy', capacityPct: 44 },
-}
-
-/** Queues that hold cross-trained specialists available to move into `target`. */
-export function getSourceQueues(target: string, alreadyTransferred: string[]): SourceQueue[] {
-  const candidates = transferCandidatesFor(target).filter((m) => !alreadyTransferred.includes(m.name))
-  const byQueue = new Map<string, TeamMember[]>()
-  for (const c of candidates) {
-    const list = byQueue.get(c.assignedQueue) ?? []
-    list.push(c)
-    byQueue.set(c.assignedQueue, list)
-  }
-  const out: SourceQueue[] = []
-  for (const [name, specialists] of byQueue) {
-    const status = SOURCE_QUEUE_STATUS[name] ?? { health: 'healthy' as QueueHealth, capacityPct: 60 }
-    out.push({
-      name,
-      ...status,
-      specialists,
-      suggested: false,
-      warningReason: status.health === 'at-risk'
-        ? `Queue at ${status.capacityPct}% capacity — pulling from here is not recommended`
-        : status.health === 'warning'
-          ? `Queue at ${status.capacityPct}% capacity — moving specialists may destabilize this queue`
-          : undefined,
-    })
-  }
-  // Most available specialists first (healthy queues ahead of stressed ones);
-  // the single best healthy option carries the SUGGESTED banner.
-  out.sort((a, b) =>
-    Number(b.health === 'healthy') - Number(a.health === 'healthy')
-    || b.specialists.length - a.specialists.length
-    || a.capacityPct - b.capacityPct
-  )
-  const best = out.find((q) => q.health === 'healthy')
-  if (best) {
-    best.suggested = true
-    best.suggestReason = `${best.specialists.length} specialist${best.specialists.length !== 1 ? 's' : ''} trained for ${target} · Queue at ${best.capacityPct}% capacity — safe to pull from`
-    best.warningReason = undefined
-  }
-  return out
-}
+// Reassign-modal source queues moved to team.ts (getSourceQueues) — they're
+// derived from the same trainedElsewhereFor pool the Roster table counts, so
+// "M more trained" and the modal's candidates agree by construction.
 
 // ─── Per-queue loan drill-down data ───────────────────────────────────────────
 

@@ -13,6 +13,18 @@ export type SimCondition = {
   proposed: string  // free text like "≤ 14 days" — first number is the threshold
 }
 
+// A fully-specified builder condition — lives here (not in the screen) so
+// QueueContext can persist scenarios per queue without importing React code.
+export type ConditionData = {
+  id: string
+  label: string   // matches a Template.label for deduplication
+  type: string
+  attribute: string
+  comparator: string
+  current: string
+  proposed: string
+}
+
 export type SimRow = {
   rank: number
   loan: string

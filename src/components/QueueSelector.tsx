@@ -43,6 +43,8 @@ export default function QueueSelector() {
   const { selectedQueue, setSelectedQueue } = useQueueContext()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   // Group queues by category, preserving the tab order Overview uses so users
   // see the same mental model in both places. Within each category, sort
@@ -65,17 +67,40 @@ export default function QueueSelector() {
       }))
   }, [])
 
-  // Close on outside click / Escape — standard popover behavior.
+  // Close on outside click / Escape; arrow keys rove focus through the
+  // options (roving focus, so Enter picks whatever is focused). On open,
+  // focus starts on the currently-selected option.
   useEffect(() => {
     if (!open) return
+    function options(): HTMLElement[] {
+      return Array.from(popoverRef.current?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])
+    }
     function onDocClick(e: MouseEvent) {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        setOpen(false)
+        triggerRef.current?.focus()
+        return
+      }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
+      const opts = options()
+      if (opts.length === 0) return
+      e.preventDefault()
+      const current = opts.indexOf(document.activeElement as HTMLElement)
+      const next =
+        e.key === 'Home' ? 0
+        : e.key === 'End' ? opts.length - 1
+        : e.key === 'ArrowDown' ? (current + 1 + opts.length) % opts.length
+        : (current - 1 + opts.length) % opts.length
+      opts[next].focus()
     }
     document.addEventListener('mousedown', onDocClick)
     document.addEventListener('keydown', onKey)
+    // Land focus on the selected option so keyboard users start from context.
+    const selected = options().find((el) => el.getAttribute('aria-selected') === 'true')
+    ;(selected ?? options()[0])?.focus()
     return () => {
       document.removeEventListener('mousedown', onDocClick)
       document.removeEventListener('keydown', onKey)
@@ -85,11 +110,13 @@ export default function QueueSelector() {
   function handlePick(title: string) {
     setSelectedQueue(title)
     setOpen(false)
+    triggerRef.current?.focus()
   }
 
   return (
     <div ref={rootRef} style={{ position: 'relative', display: 'inline-flex' }}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
@@ -111,7 +138,9 @@ export default function QueueSelector() {
 
       {open && (
         <div
+          ref={popoverRef}
           role="listbox"
+          aria-label="Queues by category"
           className="filter-enter"
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', left: 0,

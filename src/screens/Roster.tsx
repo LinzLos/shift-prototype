@@ -4,7 +4,7 @@ import Toast from '../components/Toast'
 import LiveIndicator from '../components/LiveIndicator'
 import QueueSelector from '../components/QueueSelector'
 import { useQueueContext } from '../QueueContext'
-import { getWorkloads } from '../data/queues'
+import { getMetrics, getWorkloads } from '../data/queues'
 import { rosterFor, trainedElsewhereFor, type TeamMember } from '../data/team'
 
 const css = {
@@ -180,23 +180,36 @@ type RosterRow = {
   isNew: boolean
 }
 
-function buildRows(transfers: string[], queue: string): RosterRow[] {
+function buildRows(reassignments: Record<string, string>, queue: string): RosterRow[] {
   // Scope: everyone assigned to or trained for the selected queue. rosterFor
   // and trainedElsewhereFor synthesize plausible data for queues the canonical
   // team doesn't staff, so switching queues never leaves this table empty.
-  const relevant = [...rosterFor(queue), ...trainedElsewhereFor(queue)]
+  // The reassignment ledger is applied on top: a moved specialist shows their
+  // NEW queue (and drops off their old queue's assigned count) everywhere.
+  const seen = new Set<string>()
+  const relevant = [...rosterFor(queue), ...trainedElsewhereFor(queue)].filter((m) => {
+    if (seen.has(m.name)) return false
+    seen.add(m.name)
+    return true
+  })
   const loadByName = new Map<string, number>()
   const queuesInvolved = [...new Set(relevant.map((m) => m.assignedQueue))]
   for (const q of queuesInvolved) {
     for (const w of getWorkloads(q)) loadByName.set(`${q}:${w.name}`, w.loans)
   }
   const rows = relevant.map((m: TeamMember): RosterRow => {
-    const isNew = transfers.includes(m.name)
+    const effectiveQueue = reassignments[m.name] ?? m.assignedQueue
+    const isNew = effectiveQueue !== m.assignedQueue
+    // Synthetic trained-elsewhere folks may not appear in their home queue's
+    // padded workload list — fall back to that queue's average load rather
+    // than rendering a contradictory "Just assigned" beside "N days".
+    const homeMetrics = getMetrics(m.assignedQueue)
+    const fallbackLoad = Math.max(1, Math.round(homeMetrics.active / homeMetrics.specialistCount))
     return {
       name: m.name,
       days: isNew ? 0 : m.daysInQueue,
-      loans: isNew ? null : loadByName.get(`${m.assignedQueue}:${m.name}`) ?? null,
-      assignedQueue: isNew ? queue : m.assignedQueue,
+      loans: isNew ? null : loadByName.get(`${m.assignedQueue}:${m.name}`) ?? fallbackLoad,
+      assignedQueue: effectiveQueue,
       trainedQueues: m.trainedQueues,
       isNew,
     }
@@ -255,7 +268,7 @@ function RosterTable({
           fontWeight: 500,
           color: css.textSecondary,
         }}>
-          {assignedCount} specialists assigned to {queue} · {trainedCount} more trained
+          {assignedCount} specialist{assignedCount !== 1 ? 's' : ''} assigned to {queue} · {trainedCount} more trained
         </span>
 
         <button
@@ -355,7 +368,7 @@ function RosterTable({
         background: css.surfacePage,
       }}>
         <span style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary }}>
-          Showing all <strong style={{ color: css.textSecondary }}>{rows.length}</strong> specialists assigned to or trained for Refinance
+          Showing all <strong style={{ color: css.textSecondary }}>{rows.length}</strong> specialists assigned to or trained for {queue}
         </span>
       </div>
     </div>
@@ -367,12 +380,12 @@ function RosterTable({
 export default function Roster() {
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const { selectedQueue, transfers, applyTransfer, markActioned } = useQueueContext()
-  const rows = buildRows(transfers, selectedQueue)
+  const { selectedQueue, reassignments, applyTransfer, markActioned } = useQueueContext()
+  const rows = buildRows(reassignments, selectedQueue)
 
   function handleApply(count: number, source: string, names: string[]) {
     setShowModal(false)
-    applyTransfer(names)
+    applyTransfer(names, selectedQueue)
     markActioned(selectedQueue)
     setToast(`${count} specialist${count !== 1 ? 's' : ''} moved from ${source} to ${selectedQueue}`)
     setTimeout(() => setToast(null), 4000)

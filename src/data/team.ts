@@ -110,24 +110,30 @@ function trainedNeighborsFor(queue: string, index: number): string[] {
 }
 
 /**
- * The people shown as "assigned to" a queue. Real specialists when the queue
- * has any; otherwise a synthesized roster whose names match getWorkloads()
- * (so per-specialist loan counts line up) and whose completedToday / handleHours
- * still let Performance's KPIs reconcile against the rows.
+ * The people shown as "assigned to" a queue — ONE headcount per queue, shared
+ * with every surface. The roster is derived from getWorkloads() so its names
+ * and count always match the Capacity card and the Loans drill-down: canonical
+ * team members keep their real stats, and the padded names get deterministic
+ * synthesized stats. (getWorkloads already puts canonical members first and
+ * pads thin queues to a realistic specialistCount.)
  */
 export function rosterFor(queue: string): TeamMember[] {
-  const real = assignedTo(queue)
-  if (real.length > 0) return real
   const metrics = getMetrics(queue)
-  const workloads = getWorkloads(queue)
-  return workloads.map((w, i) => syntheticMember(queue, w.name, metrics.processHours, i))
+  const byName = new Map(team.map((m) => [m.name, m]))
+  return getWorkloads(queue).map((w, i) => {
+    const real = byName.get(w.name)
+    if (real && real.assignedQueue === queue) return real
+    return syntheticMember(queue, w.name, metrics.processHours, i)
+  })
 }
 
 /**
  * People cross-trained on `queue` but assigned elsewhere. Real for canonical
  * queues, synthesized (3 pool names anchored to nearby queues) for the rest —
  * so the Roster table's "N assigned · M trained" line never reads " · 0 more
- * trained" on a queue that would look barren.
+ * trained" on a queue that would look barren. This is ALSO the reassign
+ * modal's candidate pool (see getSourceQueues), so the table's trained count
+ * and the modal's available specialists agree by construction.
  */
 export function trainedElsewhereFor(queue: string): TeamMember[] {
   const real = team.filter((m) => m.assignedQueue !== queue && m.trainedQueues.includes(queue))
@@ -151,4 +157,76 @@ export function trainedElsewhereFor(queue: string): TeamMember[] {
     })
   }
   return picks
+}
+
+// ─── Reassign modal source queues ─────────────────────────────────────────────
+
+export type QueueHealth = 'healthy' | 'warning' | 'at-risk'
+export type SourceQueue = {
+  name: string
+  health: QueueHealth
+  capacityPct: number
+  specialists: TeamMember[]
+  suggested: boolean
+  suggestReason?: string
+  warningReason?: string
+}
+
+const SOURCE_QUEUE_STATUS: Record<string, { health: QueueHealth; capacityPct: number }> = {
+  'Employment History Review': { health: 'healthy', capacityPct: 62 },
+  'New Purchase Applications': { health: 'warning', capacityPct: 81 },
+  'Title & Escrow Coordination': { health: 'at-risk', capacityPct: 96 },
+  'Deed Recording': { health: 'healthy', capacityPct: 44 },
+}
+
+function sourceStatusFor(queue: string): { health: QueueHealth; capacityPct: number } {
+  const known = SOURCE_QUEUE_STATUS[queue]
+  if (known) return known
+  const pct = 40 + (poolHash(`${queue}::capacity`) % 55)
+  return { health: pct < 70 ? 'healthy' : pct < 90 ? 'warning' : 'at-risk', capacityPct: pct }
+}
+
+/**
+ * Queues holding cross-trained specialists available to move into `target`.
+ * Candidates come from trainedElsewhereFor — the SAME pool the Roster table
+ * counts as "M more trained" — minus anyone the reassignment ledger says has
+ * already been moved (to anywhere).
+ */
+export function getSourceQueues(target: string, reassignments: Record<string, string>): SourceQueue[] {
+  const candidates = trainedElsewhereFor(target).filter((m) => !(m.name in reassignments))
+  const byQueue = new Map<string, TeamMember[]>()
+  for (const c of candidates) {
+    const list = byQueue.get(c.assignedQueue) ?? []
+    list.push(c)
+    byQueue.set(c.assignedQueue, list)
+  }
+  const out: SourceQueue[] = []
+  for (const [name, specialists] of byQueue) {
+    const status = sourceStatusFor(name)
+    out.push({
+      name,
+      ...status,
+      specialists,
+      suggested: false,
+      warningReason: status.health === 'at-risk'
+        ? `Queue at ${status.capacityPct}% capacity — pulling from here is not recommended`
+        : status.health === 'warning'
+          ? `Queue at ${status.capacityPct}% capacity — moving specialists may destabilize this queue`
+          : undefined,
+    })
+  }
+  // Most available specialists first (healthy queues ahead of stressed ones);
+  // the single best healthy option carries the SUGGESTED banner.
+  out.sort((a, b) =>
+    Number(b.health === 'healthy') - Number(a.health === 'healthy')
+    || b.specialists.length - a.specialists.length
+    || a.capacityPct - b.capacityPct
+  )
+  const best = out.find((q) => q.health === 'healthy')
+  if (best) {
+    best.suggested = true
+    best.suggestReason = `${best.specialists.length} specialist${best.specialists.length !== 1 ? 's' : ''} trained for ${target} · Queue at ${best.capacityPct}% capacity — safe to pull from`
+    best.warningReason = undefined
+  }
+  return out
 }

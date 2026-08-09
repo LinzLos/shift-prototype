@@ -1,8 +1,9 @@
 import LedgerChart from '../components/LedgerChart'
 import LiveIndicator from '../components/LiveIndicator'
 import QueueSelector from '../components/QueueSelector'
-import { useQueueContext } from '../QueueContext'
-import { rosterFor, team, DAILY_TARGET } from '../data/team'
+import { transfersInto, useQueueContext } from '../QueueContext'
+import { getMetrics } from '../data/queues'
+import { rosterFor, DAILY_TARGET } from '../data/team'
 
 const css = {
   brand: 'var(--brand)',
@@ -23,7 +24,9 @@ const font = {
   body: "'DM Sans', sans-serif",
 }
 
-const TARGET_HANDLE_HOURS = 4.2
+// How far through the workday "Now" sits — shared by the chart's target-pace
+// line and the daily-goal KPI so both judge pace against the same moment.
+const NOW_DAY_FRACTION = 0.92
 
 // ─── Header Bar ───────────────────────────────────────────────────────────────
 
@@ -151,9 +154,16 @@ function ThroughputChart({ completedToday, handleAvg, teamSize }: { completedTod
   // ahead of or behind — not the previous tautological version where target
   // was derived from completedToday and always matched the actual line.
   const dailyGoal = DAILY_TARGET * teamSize
-  const dayFractions = [0, 0.02, 0.38, 0.5, 0.64, 0.8, 0.92]
+  const dayFractions = [0, 0.02, 0.38, 0.5, 0.64, 0.8, NOW_DAY_FRACTION]
   const targetData = dayFractions.map((f) => Math.round(f * dailyGoal))
   const improvedPct = Math.round(((handleData[1] - handleData[6]) / handleData[1]) * 100)
+  // Axis ceiling fits whichever runs higher — today's completions or the goal
+  // line — so the reference line can never draw past the chart for big teams.
+  const leftMax = Math.max(120, Math.ceil(Math.max(dailyGoal, completedToday) / 40) * 40)
+  const leftTicks = [0, leftMax / 4, leftMax / 2, (3 * leftMax) / 4, leftMax].map(Math.round)
+  const paceTarget = targetData[targetData.length - 1]
+  const behindBy = paceTarget - completedToday
+  const onPace = behindBy <= 0
 
   return (
     <div style={{
@@ -175,7 +185,7 @@ function ThroughputChart({ completedToday, handleAvg, teamSize }: { completedTod
         xLabels={xLabels}
         viewW={600}
         viewH={170}
-        left={{ min: 0, max: 120, ticks: [0, 40, 80, 120] }}
+        left={{ min: 0, max: leftMax, ticks: leftTicks }}
         right={{ min: 0, max: 12, ticks: [0, 4, 8, 12], format: (v) => `${v}h` }}
         series={[
           { label: 'Loans completed',  values: loansData,  color: 'var(--chart-blue)', variant: 'area' },
@@ -201,7 +211,9 @@ function ThroughputChart({ completedToday, handleAvg, teamSize }: { completedTod
           <circle cx="7" cy="9.5" r="0.6" fill="#1b4079" />
         </svg>
         <span style={{ fontFamily: font.body, fontSize: 12, color: 'var(--info)', lineHeight: 1.5 }}>
-          Handle time has improved {improvedPct}% since 9am — team is on track to meet today's target if current pace holds.
+          {onPace
+            ? `Handle time has improved ${improvedPct}% since 9am — team is ahead of target pace and on track to meet today's goal.`
+            : `Handle time has improved ${improvedPct}% since 9am, but throughput is ${behindBy} loans behind target pace — the gap needs to close to hit today's goal of ${dailyGoal}.`}
         </span>
       </div>
     </div>
@@ -337,8 +349,14 @@ function PerformanceTable({ rows, queue }: { rows: PerfRow[]; queue: string }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Performance() {
-  const { selectedQueue, transfers } = useQueueContext()
-  const members = rosterFor(selectedQueue)
+  const { selectedQueue, reassignments } = useQueueContext()
+  // Ledger-applied roster: departures drop off, this session's arrivals are
+  // prepended (with no stats yet) — only for the queue they moved TO.
+  const members = rosterFor(selectedQueue).filter((m) => (reassignments[m.name] ?? selectedQueue) === selectedQueue)
+  const arrivals = transfersInto(selectedQueue, reassignments).filter((n) => !members.some((m) => m.name === n))
+  // The handle-time target is the selected queue's own target — the same one
+  // Queue Monitor judges this queue against.
+  const targetHours = getMetrics(selectedQueue).targetHours
 
   // Every number below is computed from the same team data the table renders,
   // so the KPIs can't disagree with the rows.
@@ -346,13 +364,12 @@ export default function Performance() {
   const handleAvg = Math.round((members.reduce((n, m) => n + m.handleHours, 0) / members.length) * 10) / 10
   const onTarget = members.filter((m) => m.completedToday >= DAILY_TARGET).length
   const teamTargetPct = Math.round((onTarget / members.length) * 100)
+  const dailyGoal = DAILY_TARGET * members.length
+  const onPace = completedToday >= Math.round(NOW_DAY_FRACTION * dailyGoal)
 
   const rows: PerfRow[] = [
-    // Transferred specialists show up immediately, with no stats yet.
-    ...transfers
-      .map((name) => team.find((m) => m.name === name))
-      .filter((m): m is NonNullable<typeof m> => !!m)
-      .map((m) => ({ name: m.name, completed: null, handleHours: null, vsTarget: null })),
+    // Specialists transferred into THIS queue show up immediately, with no stats yet.
+    ...arrivals.map((name) => ({ name, completed: null, handleHours: null, vsTarget: null })),
     ...members.map((m) => ({
       name: m.name,
       completed: m.completedToday,
@@ -370,14 +387,14 @@ export default function Performance() {
         <KpiCard
           label="Loans Completed"
           value={`${completedToday}`}
-          sub="+14 vs yesterday"
-          subColor={css.brand}
+          sub={`${Math.round((completedToday / dailyGoal) * 100)}% of today's goal (${dailyGoal})`}
+          subColor={onPace ? css.brand : css.warning}
         />
         <KpiCard
           label="Handle Time Avg."
           value={`${handleAvg}h`}
-          sub={`Target ${TARGET_HANDLE_HOURS}h`}
-          subColor={handleAvg > TARGET_HANDLE_HOURS ? css.danger : css.brand}
+          sub={`Target ${targetHours}h`}
+          subColor={handleAvg > targetHours ? css.danger : css.brand}
         />
         <KpiCard
           label="Team Target"
