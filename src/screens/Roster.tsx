@@ -2,6 +2,7 @@ import { useState } from 'react'
 import RosterModal from '../components/RosterModal'
 import Toast from '../components/Toast'
 import LiveIndicator from '../components/LiveIndicator'
+import QueueSelector from '../components/QueueSelector'
 import { useQueueContext } from '../QueueContext'
 import { getWorkloads } from '../data/queues'
 import { rosterFor, trainedElsewhereFor, type TeamMember } from '../data/team'
@@ -27,7 +28,7 @@ const font = {
 
 // ─── Header Bar ───────────────────────────────────────────────────────────────
 
-function HeaderBar({ queue }: { queue: string }) {
+function HeaderBar() {
   return (
     <div style={{
       background: css.surfacePage,
@@ -49,17 +50,8 @@ function HeaderBar({ queue }: { queue: string }) {
         }}>
           Roster
         </h1>
-        {/* Queue scope label — matches Simulation / Performance / Queue Monitor. */}
-        <span style={{
-          fontFamily: font.heading,
-          fontSize: 16,
-          fontWeight: 600,
-          letterSpacing: '-0.048px',
-          color: css.textTertiary,
-          padding: '8px 10px',
-        }}>
-          {queue}
-        </span>
+        {/* Queue scope selector — matches Simulation / Performance / Queue Monitor. */}
+        <QueueSelector />
       </div>
 
       {/* Assignments are live state — historical rosters aren't kept here */}
@@ -388,7 +380,7 @@ export default function Roster() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HeaderBar queue={selectedQueue} />
+      <HeaderBar />
       <RosterTable rows={rows} queue={selectedQueue} onMoveSpecialists={() => setShowModal(true)} />
       {showModal && (
         <RosterModal

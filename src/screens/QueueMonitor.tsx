@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import RosterModal from '../components/RosterModal'
 import LedgerChart from '../components/LedgerChart'
+import QueueSelector from '../components/QueueSelector'
 import Toast from '../components/Toast'
 import { useQueueContext } from '../QueueContext'
 import {
@@ -101,17 +102,8 @@ function HeaderBar({ queue, activeTab, onTabChange, customLabel, showDatePicker,
           }}>
             Queue Monitor
           </h1>
-          {/* Queue scope label — switch queues from Overview */}
-          <span style={{
-            fontFamily: font.heading,
-            fontWeight: 600,
-            fontSize: 16,
-            letterSpacing: '-0.048px',
-            color: css.textTertiary,
-            padding: '8px 10px',
-          }}>
-            {queue}
-          </span>
+          {/* Queue scope selector — switch queues in place or from Overview */}
+          <QueueSelector />
         </div>
         <span style={{
           fontFamily: font.body,
@@ -880,11 +872,13 @@ export default function QueueMonitor() {
   const location = useLocation()
   const navigate = useNavigate()
   const { selectedQueue, setSelectedQueue, markActioned, transfers, applyTransfer, monitorPrefs, setMonitorPrefs } = useQueueContext()
-  // Route state wins on arrival (Overview passes queue via nav state), otherwise
-  // fall back to the last queue in context. Sync the two so Simulation /
-  // Performance / Roster see whatever we're monitoring.
+  // Context is the sole source of truth for the queue in view — that keeps the
+  // header QueueSelector, Simulation, Performance, and Roster in lockstep.
+  // Route state (from Overview's card click) only *seeds* context on arrival;
+  // it is not read on every render, so a dropdown pick isn't shadowed by the
+  // stale hitchhiker value.
   const routeQueue = (location.state as { queue?: string } | null)?.queue
-  const queue: string = routeQueue ?? selectedQueue
+  const queue: string = selectedQueue
   useEffect(() => {
     if (routeQueue && routeQueue !== selectedQueue) setSelectedQueue(routeQueue)
   }, [routeQueue, selectedQueue, setSelectedQueue])

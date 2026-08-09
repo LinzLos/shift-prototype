@@ -1,5 +1,6 @@
 import LedgerChart from '../components/LedgerChart'
 import LiveIndicator from '../components/LiveIndicator'
+import QueueSelector from '../components/QueueSelector'
 import { useQueueContext } from '../QueueContext'
 import { rosterFor, team, DAILY_TARGET } from '../data/team'
 
@@ -26,7 +27,7 @@ const TARGET_HANDLE_HOURS = 4.2
 
 // ─── Header Bar ───────────────────────────────────────────────────────────────
 
-function HeaderBar({ queue }: { queue: string }) {
+function HeaderBar() {
   return (
     <div style={{
       background: css.surfacePage,
@@ -48,17 +49,8 @@ function HeaderBar({ queue }: { queue: string }) {
         }}>
           Performance
         </h1>
-        {/* Queue scope label — matches Simulation / Roster / Queue Monitor. */}
-        <span style={{
-          fontFamily: font.heading,
-          fontWeight: 600,
-          fontSize: 16,
-          letterSpacing: '-0.048px',
-          color: css.textTertiary,
-          padding: '8px 10px',
-        }}>
-          {queue}
-        </span>
+        {/* Queue scope selector — matches Simulation / Roster / Queue Monitor. */}
+        <QueueSelector />
       </div>
 
       {/* Today's stats only — no historical performance data is kept here.
@@ -371,7 +363,7 @@ export default function Performance() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HeaderBar queue={selectedQueue} />
+      <HeaderBar />
 
       {/* KPI Row */}
       <div style={{ display: 'flex', gap: 12 }}>

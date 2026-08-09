@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import QueueSelector from '../components/QueueSelector'
 import Toast from '../components/Toast'
 import { useQueueContext } from '../QueueContext'
 import { getMetrics } from '../data/queues'
@@ -142,7 +143,7 @@ function EditIcon() {
 
 // ─── Header Bar ──────────────────────────────────────────────────────────────
 
-function HeaderBar({ queue }: { queue: string }) {
+function HeaderBar() {
   return (
     <div style={{
       background: css.surfacePage,
@@ -156,10 +157,8 @@ function HeaderBar({ queue }: { queue: string }) {
       <h1 style={{ fontFamily: font.heading, fontWeight: 700, fontSize: 20, letterSpacing: '-0.08px', color: css.textPrimary, margin: 0 }}>
         Simulation
       </h1>
-      {/* Queue scope label — simulations run against the queue you're monitoring */}
-      <span style={{ fontFamily: font.heading, fontWeight: 600, fontSize: 16, letterSpacing: '-0.048px', color: css.textTertiary, padding: '8px 10px' }}>
-        {queue}
-      </span>
+      {/* Queue scope selector — switching here reruns the simulation against the new queue */}
+      <QueueSelector />
     </div>
   )
 }
@@ -1070,7 +1069,7 @@ export default function Simulation() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HeaderBar queue={queue} />
+      <HeaderBar />
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
         <ConditionBuilder
           conditions={conditions}
