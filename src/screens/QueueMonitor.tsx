@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import RosterModal from '../components/RosterModal'
 import LedgerChart from '../components/LedgerChart'
@@ -879,8 +879,15 @@ function CapacityCard({ queue, onReassign, transferred, isRealTime, canReassign,
 export default function QueueMonitor() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { markActioned, transfers, applyTransfer, monitorPrefs, setMonitorPrefs } = useQueueContext()
-  const queue: string = (location.state as { queue?: string } | null)?.queue ?? 'Refinance'
+  const { selectedQueue, setSelectedQueue, markActioned, transfers, applyTransfer, monitorPrefs, setMonitorPrefs } = useQueueContext()
+  // Route state wins on arrival (Overview passes queue via nav state), otherwise
+  // fall back to the last queue in context. Sync the two so Simulation /
+  // Performance / Roster see whatever we're monitoring.
+  const routeQueue = (location.state as { queue?: string } | null)?.queue
+  const queue: string = routeQueue ?? selectedQueue
+  useEffect(() => {
+    if (routeQueue && routeQueue !== selectedQueue) setSelectedQueue(routeQueue)
+  }, [routeQueue, selectedQueue, setSelectedQueue])
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)

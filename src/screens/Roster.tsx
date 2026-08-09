@@ -4,7 +4,7 @@ import Toast from '../components/Toast'
 import LiveIndicator from '../components/LiveIndicator'
 import { useQueueContext } from '../QueueContext'
 import { getWorkloads } from '../data/queues'
-import { team, type TeamMember } from '../data/team'
+import { rosterFor, trainedElsewhereFor, type TeamMember } from '../data/team'
 
 const css = {
   brand: 'var(--brand)',
@@ -27,7 +27,7 @@ const font = {
 
 // ─── Header Bar ───────────────────────────────────────────────────────────────
 
-function HeaderBar() {
+function HeaderBar({ queue }: { queue: string }) {
   return (
     <div style={{
       background: css.surfacePage,
@@ -38,7 +38,7 @@ function HeaderBar() {
       alignItems: 'center',
       justifyContent: 'space-between',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <h1 style={{
           fontFamily: font.heading,
           fontWeight: 700,
@@ -49,14 +49,16 @@ function HeaderBar() {
         }}>
           Roster
         </h1>
-        {/* Queue scope label — the roster is Refinance-scoped in this prototype */}
+        {/* Queue scope label — matches Simulation / Performance / Queue Monitor. */}
         <span style={{
           fontFamily: font.heading,
           fontSize: 16,
           fontWeight: 600,
+          letterSpacing: '-0.048px',
           color: css.textTertiary,
+          padding: '8px 10px',
         }}>
-          Refinance
+          {queue}
         </span>
       </div>
 
@@ -186,9 +188,11 @@ type RosterRow = {
   isNew: boolean
 }
 
-function buildRows(transfers: string[]): RosterRow[] {
-  // Scope: everyone assigned to or trained for Refinance.
-  const relevant = team.filter((m) => m.assignedQueue === 'Refinance' || m.trainedQueues.includes('Refinance'))
+function buildRows(transfers: string[], queue: string): RosterRow[] {
+  // Scope: everyone assigned to or trained for the selected queue. rosterFor
+  // and trainedElsewhereFor synthesize plausible data for queues the canonical
+  // team doesn't staff, so switching queues never leaves this table empty.
+  const relevant = [...rosterFor(queue), ...trainedElsewhereFor(queue)]
   const loadByName = new Map<string, number>()
   const queuesInvolved = [...new Set(relevant.map((m) => m.assignedQueue))]
   for (const q of queuesInvolved) {
@@ -200,17 +204,17 @@ function buildRows(transfers: string[]): RosterRow[] {
       name: m.name,
       days: isNew ? 0 : m.daysInQueue,
       loans: isNew ? null : loadByName.get(`${m.assignedQueue}:${m.name}`) ?? null,
-      assignedQueue: isNew ? 'Refinance' : m.assignedQueue,
+      assignedQueue: isNew ? queue : m.assignedQueue,
       trainedQueues: m.trainedQueues,
       isNew,
     }
   })
-  // Refinance-assigned first (new arrivals at the top), then trained-elsewhere.
+  // Assigned to the selected queue first (new arrivals at the top), then trained-elsewhere.
   return rows.sort((a, b) => {
     if (a.isNew !== b.isNew) return a.isNew ? -1 : 1
-    const aRef = a.assignedQueue === 'Refinance'
-    const bRef = b.assignedQueue === 'Refinance'
-    if (aRef !== bRef) return aRef ? -1 : 1
+    const aAssigned = a.assignedQueue === queue
+    const bAssigned = b.assignedQueue === queue
+    if (aAssigned !== bAssigned) return aAssigned ? -1 : 1
     return (b.loans ?? 0) - (a.loans ?? 0)
   })
 }
@@ -219,12 +223,14 @@ function buildRows(transfers: string[]): RosterRow[] {
 
 function RosterTable({
   rows,
+  queue,
   onMoveSpecialists,
 }: {
   rows: RosterRow[]
+  queue: string
   onMoveSpecialists: () => void
 }) {
-  const assignedCount = rows.filter((r) => r.assignedQueue === 'Refinance').length
+  const assignedCount = rows.filter((r) => r.assignedQueue === queue).length
   const trainedCount = rows.length - assignedCount
 
   const thStyle: React.CSSProperties = {
@@ -257,7 +263,7 @@ function RosterTable({
           fontWeight: 500,
           color: css.textSecondary,
         }}>
-          {assignedCount} specialists assigned to Refinance · {trainedCount} more trained
+          {assignedCount} specialists assigned to {queue} · {trainedCount} more trained
         </span>
 
         <button
@@ -369,24 +375,24 @@ function RosterTable({
 export default function Roster() {
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const { transfers, applyTransfer, markActioned } = useQueueContext()
-  const rows = buildRows(transfers)
+  const { selectedQueue, transfers, applyTransfer, markActioned } = useQueueContext()
+  const rows = buildRows(transfers, selectedQueue)
 
   function handleApply(count: number, source: string, names: string[]) {
     setShowModal(false)
     applyTransfer(names)
-    markActioned('Refinance')
-    setToast(`${count} specialist${count !== 1 ? 's' : ''} moved from ${source} to Refinance`)
+    markActioned(selectedQueue)
+    setToast(`${count} specialist${count !== 1 ? 's' : ''} moved from ${source} to ${selectedQueue}`)
     setTimeout(() => setToast(null), 4000)
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HeaderBar />
-      <RosterTable rows={rows} onMoveSpecialists={() => setShowModal(true)} />
+      <HeaderBar queue={selectedQueue} />
+      <RosterTable rows={rows} queue={selectedQueue} onMoveSpecialists={() => setShowModal(true)} />
       {showModal && (
         <RosterModal
-          target="Refinance"
+          target={selectedQueue}
           onClose={() => setShowModal(false)}
           onApply={handleApply}
         />

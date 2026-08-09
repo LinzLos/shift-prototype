@@ -5,11 +5,9 @@ import { useQueueContext } from '../QueueContext'
 import { getMetrics } from '../data/queues'
 import { insightFor, runSimulation, type SimResult } from '../data/simulation'
 
-// All Simulation copy derives from the Refinance queue record so its numbers
-// match the Overview card and Queue Monitor.
-const QUEUE = 'Refinance'
-const metrics = getMetrics(QUEUE)
-const ACTIVE_FMT = metrics.active.toLocaleString('en-US')
+// All Simulation copy derives from the selected queue's record so its numbers
+// match the Overview card and Queue Monitor. `queue` / `metrics` are read from
+// context inside the Simulation component and threaded down to sub-components.
 
 const css = {
   brand: 'var(--brand)',
@@ -144,7 +142,7 @@ function EditIcon() {
 
 // ─── Header Bar ──────────────────────────────────────────────────────────────
 
-function HeaderBar() {
+function HeaderBar({ queue }: { queue: string }) {
   return (
     <div style={{
       background: css.surfacePage,
@@ -160,7 +158,7 @@ function HeaderBar() {
       </h1>
       {/* Queue scope label — simulations run against the queue you're monitoring */}
       <span style={{ fontFamily: font.heading, fontWeight: 600, fontSize: 16, letterSpacing: '-0.048px', color: css.textTertiary, padding: '8px 10px' }}>
-        {QUEUE}
+        {queue}
       </span>
     </div>
   )
@@ -204,10 +202,11 @@ function InsightBanner({ text }: { text: string }) {
 }
 
 function ConditionCard({
-  condition, index, onRemove, onUpdateProposed,
+  condition, index, queue, onRemove, onUpdateProposed,
 }: {
   condition: ConditionData
   index: number
+  queue: string
   onRemove: () => void
   onUpdateProposed: (val: string) => void
 }) {
@@ -307,7 +306,7 @@ function ConditionCard({
           </div>
         </div>
 
-        <InsightBanner text={insightFor(QUEUE, condition.label, condition.proposed)} />
+        <InsightBanner text={insightFor(queue, condition.label, condition.proposed)} />
       </div>
     </div>
   )
@@ -316,9 +315,10 @@ function ConditionCard({
 // ─── Add Condition Form ───────────────────────────────────────────────────────
 
 function AddConditionForm({
-  usedLabels, onAdd, onCancel,
+  usedLabels, queue, onAdd, onCancel,
 }: {
   usedLabels: string[]
+  queue: string
   onAdd: (c: ConditionData) => void
   onCancel: () => void
 }) {
@@ -406,7 +406,7 @@ function AddConditionForm({
               />
             </div>
           </div>
-          <InsightBanner text={insightFor(QUEUE, selected.label, proposed || selected.defaultProposed)} />
+          <InsightBanner text={insightFor(queue, selected.label, proposed || selected.defaultProposed)} />
         </div>
       )}
 
@@ -446,10 +446,12 @@ function AddConditionForm({
 // ─── Condition Builder Panel ──────────────────────────────────────────────────
 
 function ConditionBuilder({
-  conditions, phase, onAdd, onRemove, onUpdateProposed, onRun, onReset,
+  conditions, phase, queue, urgentCount, onAdd, onRemove, onUpdateProposed, onRun, onReset,
 }: {
   conditions: ConditionData[]
   phase: Phase
+  queue: string
+  urgentCount: number
   onAdd: (c: ConditionData) => void
   onRemove: (id: string) => void
   onUpdateProposed: (id: string, val: string) => void
@@ -492,19 +494,19 @@ function ConditionBuilder({
       }}>
         <div style={{ marginTop: 1, flexShrink: 0 }}><ShieldIcon /></div>
         <div>
-          <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.danger, lineHeight: 1.25 }}>{QUEUE}</div>
+          <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: css.danger, lineHeight: 1.25 }}>{queue}</div>
           <div style={{ fontFamily: font.body, fontSize: 13, color: css.danger, lineHeight: 1.4 }}>
             has{' '}
             <button
               type="button"
-              onClick={() => navigate('/loans', { state: { queue: QUEUE, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })}
+              onClick={() => navigate('/loans', { state: { queue, days: 5, label: '≤5 days to close', source: 'closing-risk alert' } })}
               style={{
                 background: 'none', border: 'none', padding: 0, margin: 0,
                 font: 'inherit', color: 'inherit', cursor: 'pointer',
                 textDecoration: 'underline', textUnderlineOffset: 2, fontWeight: 700,
               }}
             >
-              {metrics.urgent} loans
+              {urgentCount} loans
             </button>
             {' '}within 5 days of closing. Testing time-based conditions may help reprioritize before cutoff.
           </div>
@@ -545,6 +547,7 @@ function ConditionBuilder({
               key={c.id}
               condition={c}
               index={i}
+              queue={queue}
               onRemove={() => onRemove(c.id)}
               onUpdateProposed={val => onUpdateProposed(c.id, val)}
             />
@@ -553,6 +556,7 @@ function ConditionBuilder({
           {addingNew ? (
             <AddConditionForm
               usedLabels={conditions.map(c => c.label)}
+              queue={queue}
               onAdd={handleAdd}
               onCancel={() => setAddingNew(false)}
             />
@@ -640,11 +644,13 @@ function ChangePill({ value, type }: { value: string; type: 'positive' | 'negati
 // ─── Simulation Results Panel ─────────────────────────────────────────────────
 
 function SimulationResults({
-  phase, progress, conditionCount, onModify, resultsKey, saved, applied, onSave, onShare, onApply, result,
+  phase, progress, conditionCount, queue, activeFmt, onModify, resultsKey, saved, applied, onSave, onShare, onApply, result,
 }: {
   phase: Phase
   progress: number
   conditionCount: number
+  queue: string
+  activeFmt: string
   onModify: () => void
   resultsKey: number
   saved: boolean
@@ -666,7 +672,7 @@ function SimulationResults({
 
   // Progress label
   const runLabel = progress < 40
-    ? `Scanning ${ACTIVE_FMT} loans in ${QUEUE}…`
+    ? `Scanning ${activeFmt} loans in ${queue}…`
     : progress < 80
       ? `Computing rank changes across ${conditionCount} condition${conditionCount !== 1 ? 's' : ''}…`
       : 'Finalizing simulation results…'
@@ -694,7 +700,7 @@ function SimulationResults({
             Configure conditions to run a simulation
           </div>
           <div style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary, lineHeight: 1.6, maxWidth: 280 }}>
-            Add at least one condition on the left to see how loan rankings in Refinance would shift — without touching the live queue.
+            Add at least one condition on the left to see how loan rankings in {queue} would shift — without touching the live queue.
           </div>
         </div>
       )}
@@ -793,14 +799,14 @@ function SimulationResults({
               </button>
             </div>
             <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 500, color: css.textTertiary }}>
-              Based on {ACTIVE_FMT} loans · {QUEUE} · Simulated, not applied
+              Based on {activeFmt} loans · {queue} · Simulated, not applied
             </div>
           </div>
 
           {/* KPI row — computed by the simulation engine from the conditions */}
           <div style={{ display: 'flex', gap: 16 }}>
             {[
-              { label: 'loans affected', value: result.affected.toLocaleString('en-US'), sub: `of ${ACTIVE_FMT} total, ${result.affectedPct}% (est.)`, delay: 60 },
+              { label: 'loans affected', value: result.affected.toLocaleString('en-US'), sub: `of ${activeFmt} total, ${result.affectedPct}% (est.)`, delay: 60 },
               { label: 'rank increases', value: `+${result.up.toLocaleString('en-US')}`, sub: 'moved higher in priority',  delay: 130 },
               { label: 'rank decreases', value: `-${result.down.toLocaleString('en-US')}`, sub: 'moved lower in priority',   delay: 200 },
             ].map(({ label, value, sub, delay }) => (
@@ -895,7 +901,7 @@ function SimulationResults({
               </svg>
               <div>
                 <div style={{ fontFamily: font.body, fontSize: 13, fontWeight: 700, color: 'var(--brand-dark)', marginBottom: 2 }}>
-                  Conditions applied to {QUEUE}
+                  Conditions applied to {queue}
                 </div>
                 <div style={{ fontFamily: font.body, fontSize: 12, color: 'var(--brand-dark)' }}>
                   Live rankings are re-sorting — the queue is marked as actioned on Overview.
@@ -961,6 +967,11 @@ function SimulationResults({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Simulation() {
+  const { selectedQueue, markActioned } = useQueueContext()
+  const queue = selectedQueue
+  const metrics = useMemo(() => getMetrics(queue), [queue])
+  const activeFmt = useMemo(() => metrics.active.toLocaleString('en-US'), [metrics])
+
   const [phase, setPhase]       = useState<Phase>('build')
   const [conditions, setConditions] = useState<ConditionData[]>([])
   const [progress, setProgress] = useState(0)
@@ -968,13 +979,22 @@ export default function Simulation() {
   const [saved, setSaved] = useState(false)
   const [applied, setApplied] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const { markActioned } = useQueueContext()
+
+  // Switching queue mid-flight would show old-queue results under a new-queue
+  // title. Reset to a clean build state so the demo stays coherent.
+  useEffect(() => {
+    setConditions([])
+    setPhase('build')
+    setProgress(0)
+    setSaved(false)
+    setApplied(false)
+  }, [queue])
 
   // Rank shifts computed from the actual condition thresholds — editing a
   // proposed value and re-running produces different results.
   const result = useMemo(
-    () => runSimulation(QUEUE, conditions.map(c => ({ label: c.label, proposed: c.proposed }))),
-    [conditions]
+    () => runSimulation(queue, conditions.map(c => ({ label: c.label, proposed: c.proposed }))),
+    [queue, conditions]
   )
 
   function showToast(message: string) {
@@ -994,8 +1014,8 @@ export default function Simulation() {
 
   function handleApplyConditions() {
     setApplied(true)
-    markActioned(QUEUE)
-    showToast(`Conditions applied to ${QUEUE}`)
+    markActioned(queue)
+    showToast(`Conditions applied to ${queue}`)
   }
 
   // Progress animation when running
@@ -1050,11 +1070,13 @@ export default function Simulation() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HeaderBar />
+      <HeaderBar queue={queue} />
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
         <ConditionBuilder
           conditions={conditions}
           phase={phase}
+          queue={queue}
+          urgentCount={metrics.urgent}
           onAdd={addCondition}
           onRemove={removeCondition}
           onUpdateProposed={updateProposed}
@@ -1065,6 +1087,8 @@ export default function Simulation() {
           phase={phase}
           progress={progress}
           conditionCount={conditions.length}
+          queue={queue}
+          activeFmt={activeFmt}
           onModify={handleModify}
           resultsKey={resultsKey}
           saved={saved}

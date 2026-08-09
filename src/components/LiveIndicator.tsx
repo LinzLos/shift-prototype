@@ -7,9 +7,11 @@ const font = {
 // Honest real-time-only status: instead of a dead time-range toggle, screens
 // without historical data show this pill and explain where time ranges live.
 export default function LiveIndicator({
+  label = 'Real Time',
   tooltipTitle = 'Real-time only',
   tooltipBody,
 }: {
+  label?: string
   tooltipTitle?: string
   tooltipBody: React.ReactNode
 }) {
@@ -41,7 +43,7 @@ export default function LiveIndicator({
           letterSpacing: '-0.012px',
           whiteSpace: 'nowrap',
         }}>
-          Real Time
+          {label}
         </span>
         <button
           onMouseEnter={() => setShowTip(true)}

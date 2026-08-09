@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getLoans, LOAN_STAGES } from '../data/queues'
+import { useQueueContext } from '../QueueContext'
 
 const css = {
   brand: 'var(--brand)',
@@ -100,9 +101,15 @@ function Chip({ label, active, onClick, removable }: {
 export default function Loans() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { selectedQueue, setSelectedQueue } = useQueueContext()
   const state = (location.state as { queue?: string; days?: number; label?: string; source?: string } | null) ?? null
-  const queue = state?.queue ?? 'Refinance'
+  const queue = state?.queue ?? selectedQueue
   const sourceLabel = state?.source ?? null
+  // Keep the global queue in sync so backing out to Simulation / Performance /
+  // Roster shows the same queue we drilled into.
+  useEffect(() => {
+    if (queue !== selectedQueue) setSelectedQueue(queue)
+  }, [queue, selectedQueue, setSelectedQueue])
 
   const [search, setSearch] = useState('')
   const [dayBucket, setDayBucket] = useState<number | null>(state?.days ?? null)

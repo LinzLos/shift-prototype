@@ -1,7 +1,15 @@
 // Canonical specialist roster — the single source of truth for who exists,
-// where they're assigned, what they're trained on, and how they're performing.
-// Capacity, Roster, Performance, the reassign modal, and Loans all read from
-// here so headcounts and identities agree across screens.
+// where they're assigned, what they're trained on, and how they're performing
+// on the five queues that carry the demo's story (Refinance, Employment
+// History Review, New Purchase Applications, Title & Escrow Coordination,
+// Deed Recording). Capacity, Roster, Performance, the reassign modal, and
+// Loans all read from here so headcounts and identities agree across screens.
+//
+// For every OTHER queue, `rosterFor(queue)` synthesizes a deterministic roster
+// from the shared FILL_NAMES pool so switching queues never lands on an empty
+// Roster or NaN-filled Performance page. Same queue → same names/numbers.
+
+import { FILL_NAMES, getMetrics, getWorkloads, poolHash, queues } from './queues'
 
 export type TeamMember = {
   name: string
@@ -55,4 +63,92 @@ export function trainedFor(queue: string): TeamMember[] {
 /** Cross-trained for `queue` but currently assigned elsewhere. */
 export function transferCandidatesFor(queue: string): TeamMember[] {
   return team.filter((m) => m.assignedQueue !== queue && m.trainedQueues.includes(queue))
+}
+
+// ─── Synthetic rosters for non-canonical queues ───────────────────────────────
+//
+// The 22-person canonical `team` only covers 5 queues. For every other queue,
+// we synthesize a deterministic roster off the shared FILL_NAMES pool so
+// Roster / Performance stay full when the user switches queues. Same queue →
+// same names & numbers on every render.
+
+// Nudge a value into a range using a deterministic per-name delta.
+function jitter(seed: number, span: number): number {
+  return ((seed % 1000) / 1000 - 0.5) * span
+}
+
+function syntheticMember(queue: string, name: string, targetHandle: number, index: number): TeamMember {
+  const seed = poolHash(`${queue}::${name}`)
+  // handleHours scatters around the queue's process-time average.
+  const handleHours = Math.round((targetHandle + jitter(seed, 2.4)) * 10) / 10
+  // Faster handlers finish more loans. DAILY_TARGET = 8, so a range of ~2–13
+  // keeps the Team-Target percentage plausible without pinning it to 100%.
+  const completedToday = Math.max(2, Math.min(13, Math.round(11 - handleHours * 0.9 + jitter(seed >> 3, 3))))
+  const daysInQueue = 3 + (seed % 18)
+  return {
+    name,
+    assignedQueue: queue,
+    trainedQueues: [queue, ...trainedNeighborsFor(queue, index)],
+    daysInQueue,
+    completedToday,
+    handleHours,
+  }
+}
+
+// Pick 1–2 "other queue" titles as cross-training decoration for a synth
+// specialist. Uses the canonical queue list from queues.ts.
+function trainedNeighborsFor(queue: string, index: number): string[] {
+  const titles = queues.map((q) => q.title).filter((t) => t !== queue)
+  if (titles.length === 0) return []
+  const offset = poolHash(`${queue}::t::${index}`) % titles.length
+  const count = 1 + (index % 2)
+  const picks: string[] = []
+  for (let i = 0; i < count && picks.length < titles.length; i++) {
+    picks.push(titles[(offset + i) % titles.length])
+  }
+  return picks
+}
+
+/**
+ * The people shown as "assigned to" a queue. Real specialists when the queue
+ * has any; otherwise a synthesized roster whose names match getWorkloads()
+ * (so per-specialist loan counts line up) and whose completedToday / handleHours
+ * still let Performance's KPIs reconcile against the rows.
+ */
+export function rosterFor(queue: string): TeamMember[] {
+  const real = assignedTo(queue)
+  if (real.length > 0) return real
+  const metrics = getMetrics(queue)
+  const workloads = getWorkloads(queue)
+  return workloads.map((w, i) => syntheticMember(queue, w.name, metrics.processHours, i))
+}
+
+/**
+ * People cross-trained on `queue` but assigned elsewhere. Real for canonical
+ * queues, synthesized (3 pool names anchored to nearby queues) for the rest —
+ * so the Roster table's "N assigned · M trained" line never reads " · 0 more
+ * trained" on a queue that would look barren.
+ */
+export function trainedElsewhereFor(queue: string): TeamMember[] {
+  const real = team.filter((m) => m.assignedQueue !== queue && m.trainedQueues.includes(queue))
+  if (real.length > 0) return real
+  const metrics = getMetrics(queue)
+  const roster = rosterFor(queue)
+  const taken = new Set(roster.map((m) => m.name))
+  const otherTitles = queues.map((q) => q.title).filter((t) => t !== queue)
+  const offset = poolHash(`${queue}::trained`) % FILL_NAMES.length
+  const picks: TeamMember[] = []
+  for (let i = 0; picks.length < 3 && i < FILL_NAMES.length; i++) {
+    const name = FILL_NAMES[(offset + i) % FILL_NAMES.length]
+    if (taken.has(name)) continue
+    const home = otherTitles.length
+      ? otherTitles[poolHash(`${queue}::home::${name}`) % otherTitles.length]
+      : queue
+    picks.push({
+      ...syntheticMember(queue, name, metrics.processHours, roster.length + picks.length),
+      assignedQueue: home,
+      trainedQueues: [home, queue],
+    })
+  }
+  return picks
 }

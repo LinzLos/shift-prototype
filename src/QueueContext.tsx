@@ -3,6 +3,12 @@ import { createContext, useContext, useState } from 'react'
 type MonitorPrefs = { activeTab: string; customLabel: string | null }
 
 type QueueContextType = {
+  // Global "queue in focus" shared by Simulation, Performance, and Roster so
+  // picking a queue on Overview / Queue Monitor keeps every other surface
+  // scoped to the same one. Loans keeps route-state for drill-down semantics
+  // but syncs this on mount.
+  selectedQueue: string
+  setSelectedQueue: (queue: string) => void
   actioned: string[]
   markActioned: (queue: string) => void
   // Names moved into Refinance via the reassign flow — global, so the transfer
@@ -16,6 +22,8 @@ type QueueContextType = {
 }
 
 const QueueContext = createContext<QueueContextType>({
+  selectedQueue: 'Refinance',
+  setSelectedQueue: () => {},
   actioned: [],
   markActioned: () => {},
   transfers: [],
@@ -25,6 +33,7 @@ const QueueContext = createContext<QueueContextType>({
 })
 
 export function QueueProvider({ children }: { children: React.ReactNode }) {
+  const [selectedQueue, setSelectedQueue] = useState<string>('Refinance')
   const [actioned, setActioned] = useState<string[]>([])
   const [transfers, setTransfers] = useState<string[]>([])
   const [monitorPrefs, setMonitorPrefsState] = useState<Record<string, MonitorPrefs>>({})
@@ -40,7 +49,7 @@ export function QueueProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <QueueContext.Provider value={{ actioned, markActioned, transfers, applyTransfer, monitorPrefs, setMonitorPrefs }}>
+    <QueueContext.Provider value={{ selectedQueue, setSelectedQueue, actioned, markActioned, transfers, applyTransfer, monitorPrefs, setMonitorPrefs }}>
       {children}
     </QueueContext.Provider>
   )

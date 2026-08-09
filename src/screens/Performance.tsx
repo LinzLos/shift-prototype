@@ -1,7 +1,7 @@
 import LedgerChart from '../components/LedgerChart'
 import LiveIndicator from '../components/LiveIndicator'
 import { useQueueContext } from '../QueueContext'
-import { assignedTo, team, DAILY_TARGET } from '../data/team'
+import { rosterFor, team, DAILY_TARGET } from '../data/team'
 
 const css = {
   brand: 'var(--brand)',
@@ -26,7 +26,7 @@ const TARGET_HANDLE_HOURS = 4.2
 
 // ─── Header Bar ───────────────────────────────────────────────────────────────
 
-function HeaderBar() {
+function HeaderBar({ queue }: { queue: string }) {
   return (
     <div style={{
       background: css.surfacePage,
@@ -37,7 +37,7 @@ function HeaderBar() {
       alignItems: 'center',
       justifyContent: 'space-between',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <h1 style={{
           fontFamily: font.heading,
           fontWeight: 700,
@@ -48,19 +48,27 @@ function HeaderBar() {
         }}>
           Performance
         </h1>
-        {/* Queue scope label — performance stats are Refinance-scoped in this prototype */}
+        {/* Queue scope label — matches Simulation / Roster / Queue Monitor. */}
         <span style={{
-          fontFamily: font.body,
-          fontSize: 12,
-          color: css.textSecondary,
-          fontWeight: 500,
+          fontFamily: font.heading,
+          fontWeight: 600,
+          fontSize: 16,
+          letterSpacing: '-0.048px',
+          color: css.textTertiary,
+          padding: '8px 10px',
         }}>
-          Refinance
+          {queue}
         </span>
       </div>
 
-      {/* Today's stats only — no historical performance data is kept here */}
-      <LiveIndicator tooltipBody={<>Showing today's stats. Use <strong style={{ color: css.textPrimary }}>Queue Monitor</strong> for time ranges.</>} />
+      {/* Today's stats only — no historical performance data is kept here.
+          Time-range filtering was the next feature in flight when scoped for
+          launch; the KPIs and chart derive strictly from today's activity. */}
+      <LiveIndicator
+        label="Today so far"
+        tooltipTitle="Today only"
+        tooltipBody={<>Team activity since midnight, refreshed live. Historical performance ranges are on the roadmap — this view is scoped to today so every number derives from something visible on-screen.</>}
+      />
     </div>
   )
 }
@@ -72,9 +80,10 @@ type KpiCardProps = {
   value: string
   sub: string
   subColor?: string
+  scopePill?: string
 }
 
-function KpiCard({ label, value, sub, subColor }: KpiCardProps) {
+function KpiCard({ label, value, sub, subColor, scopePill }: KpiCardProps) {
   return (
     <div style={{
       background: css.surface,
@@ -87,16 +96,35 @@ function KpiCard({ label, value, sub, subColor }: KpiCardProps) {
       flex: 1,
       minWidth: 0,
     }}>
-      <span style={{
-        fontFamily: font.body,
-        fontSize: 10,
-        fontWeight: 600,
-        color: css.textTertiary,
-        letterSpacing: '0.7px',
-        textTransform: 'uppercase',
-      }}>
-        {label}
-      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{
+          fontFamily: font.body,
+          fontSize: 10,
+          fontWeight: 600,
+          color: css.textTertiary,
+          letterSpacing: '0.7px',
+          textTransform: 'uppercase',
+        }}>
+          {label}
+        </span>
+        {scopePill && (
+          <span style={{
+            fontFamily: font.body,
+            fontSize: 9,
+            fontWeight: 700,
+            color: css.textSecondary,
+            background: css.surfacePage,
+            border: `1px solid ${css.border}`,
+            borderRadius: 100,
+            padding: '2px 8px',
+            letterSpacing: '0.4px',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}>
+            {scopePill}
+          </span>
+        )}
+      </div>
       <span style={{
         fontFamily: font.heading,
         fontSize: 28,
@@ -120,13 +148,19 @@ function KpiCard({ label, value, sub, subColor }: KpiCardProps) {
 
 // ─── Throughput Chart ─────────────────────────────────────────────────────────
 
-function ThroughputChart({ completedToday, handleAvg }: { completedToday: number; handleAvg: number }) {
+function ThroughputChart({ completedToday, handleAvg, teamSize }: { completedToday: number; handleAvg: number; teamSize: number }) {
   const xLabels = ['12a', '9a', '12p', '1p', '2p', '3p', 'Now']
   // Cumulative completions through the day, ending at today's total.
   const loansData = [0.11, 0.33, 0.66, 0.77, 0.88, 0.97, 1].map((f) => Math.round(f * completedToday))
   // Handle time per loan (hours) declining toward the current average.
   const handleData = [1.13, 1.11, 1.08, 1.05, 1.03, 1.02, 1].map((f) => Math.round(f * handleAvg * 10) / 10)
-  const targetData = [0, 0.22, 0.49, 0.57, 0.68, 0.82, 1].map((f) => Math.round(f * completedToday))
+  // Target pace = the daily goal (DAILY_TARGET per person × team size), pro-rated
+  // across the workday. This gives an honest reference the actual line can be
+  // ahead of or behind — not the previous tautological version where target
+  // was derived from completedToday and always matched the actual line.
+  const dailyGoal = DAILY_TARGET * teamSize
+  const dayFractions = [0, 0.02, 0.38, 0.5, 0.64, 0.8, 0.92]
+  const targetData = dayFractions.map((f) => Math.round(f * dailyGoal))
   const improvedPct = Math.round(((handleData[1] - handleData[6]) / handleData[1]) * 100)
 
   return (
@@ -228,7 +262,7 @@ type PerfRow = {
   vsTarget: number | null
 }
 
-function PerformanceTable({ rows }: { rows: PerfRow[] }) {
+function PerformanceTable({ rows, queue }: { rows: PerfRow[]; queue: string }) {
   const th: React.CSSProperties = {
     fontFamily: font.body, fontSize: 11, fontWeight: 600,
     color: css.textTertiary, letterSpacing: '0.5px', textTransform: 'uppercase',
@@ -301,7 +335,7 @@ function PerformanceTable({ rows }: { rows: PerfRow[] }) {
         borderTop: `1px solid ${css.border}`,
       }}>
         <span style={{ fontFamily: font.body, fontSize: 12, color: css.textTertiary }}>
-          Showing all {rows.length} specialists on Refinance
+          Showing all {rows.length} specialists on {queue}
         </span>
       </div>
     </div>
@@ -311,8 +345,8 @@ function PerformanceTable({ rows }: { rows: PerfRow[] }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Performance() {
-  const { transfers } = useQueueContext()
-  const members = assignedTo('Refinance')
+  const { selectedQueue, transfers } = useQueueContext()
+  const members = rosterFor(selectedQueue)
 
   // Every number below is computed from the same team data the table renders,
   // so the KPIs can't disagree with the rows.
@@ -337,7 +371,7 @@ export default function Performance() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HeaderBar />
+      <HeaderBar queue={selectedQueue} />
 
       {/* KPI Row */}
       <div style={{ display: 'flex', gap: 12 }}>
@@ -357,23 +391,12 @@ export default function Performance() {
           label="Team Target"
           value={`${teamTargetPct}%`}
           sub={`${onTarget} of ${members.length} members on target`}
-        />
-        <KpiCard
-          label="Idle Time Avg."
-          value="3.4h"
-          sub="2 members > 5h idle"
-          subColor={css.warning}
-        />
-        <KpiCard
-          label="Rework Rate"
-          value="2.1%"
-          sub="Down from 3.4% last week"
-          subColor={css.brand}
+          scopePill="Today only"
         />
       </div>
 
-      <ThroughputChart completedToday={completedToday} handleAvg={handleAvg} />
-      <PerformanceTable rows={rows} />
+      <ThroughputChart completedToday={completedToday} handleAvg={handleAvg} teamSize={members.length} />
+      <PerformanceTable rows={rows} queue={selectedQueue} />
     </div>
   )
 }

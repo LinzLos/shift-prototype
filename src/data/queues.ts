@@ -467,7 +467,9 @@ export function getRiskLine(title: string): { label: string; type: 'danger' | 'i
 export type Workload = { name: string; loans: number; fill: number; isTeamMember: boolean }
 
 // Fill-in names for queues where the canonical team has no assignments.
-const FILL_NAMES = [
+// Exported so team.ts can draw from the same pool when synthesizing rosters
+// for non-canonical queues (Roster / Performance stay full when you switch).
+export const FILL_NAMES = [
   'Nadia Osman', 'Kwame Boateng', 'Lucia Ferreira', 'Dmitri Volkov', 'Aisha Karim',
   'Owen McAllister', 'Sana Qureshi', 'Mateo Vargas', 'Ingrid Solberg', 'Kenji Watanabe',
   'Amara Toure', 'Piotr Nowak', 'Leila Haddad', 'Marcus Lindqvist', 'Renee Dubois',
@@ -475,7 +477,9 @@ const FILL_NAMES = [
   'Zainab Farouk', 'Callum Boyd', 'Mei-Ling Chen', 'Oskar Novak',
 ]
 
-function hash(s: string) {
+// Stable 32-bit hash — used to pick deterministic pool offsets so the same
+// (queue, name) pair always yields the same synthesized numbers.
+export function poolHash(s: string) {
   let h = 0
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
   return h
@@ -492,7 +496,7 @@ export function getWorkloads(title: string): Workload[] {
   const members = assignedTo(title)
   const n = m.specialistCount
   const names: { name: string; isTeamMember: boolean }[] = members.map((t: TeamMember) => ({ name: t.name, isTeamMember: true }))
-  const offset = hash(title) % FILL_NAMES.length
+  const offset = poolHash(title) % FILL_NAMES.length
   for (let i = 0; names.length < n; i++) {
     const candidate = FILL_NAMES[(offset + i) % FILL_NAMES.length]
     if (!names.some((x) => x.name === candidate)) names.push({ name: candidate, isTeamMember: false })
@@ -774,7 +778,7 @@ export function getLoans(title: string): Loan[] {
   const m = getMetrics(title)
   const workloads = getWorkloads(title)
   const prefix = queuePrefix(title)
-  const h = hash(title)
+  const h = poolHash(title)
   const urgent = Math.min(m.urgent, BORROWERS.length - 8)
   const total = Math.min(BORROWERS.length, Math.max(urgent + 16, 30))
   return BORROWERS.slice(0, total).map((borrower, i) => {
