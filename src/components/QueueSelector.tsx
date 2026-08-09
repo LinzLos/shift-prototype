@@ -45,7 +45,11 @@ export default function QueueSelector() {
   const rootRef = useRef<HTMLDivElement>(null)
 
   // Group queues by category, preserving the tab order Overview uses so users
-  // see the same mental model in both places.
+  // see the same mental model in both places. Within each category, sort
+  // alphabetically by title: the dropdown is a navigation tool (lookup by
+  // name), not a triage surface — Overview handles "what's on fire" via card
+  // ranking and badges. Alpha reduces cognitive load for the common case
+  // where a user is jumping to their owned queue during a deeper investigation.
   const grouped = useMemo(() => {
     const map = new Map<string, typeof queues>()
     for (const q of queues) {
@@ -55,7 +59,10 @@ export default function QueueSelector() {
     }
     return CATEGORY_ORDER
       .filter((c) => map.has(c))
-      .map((c) => ({ category: c, items: map.get(c)! }))
+      .map((c) => ({
+        category: c,
+        items: [...map.get(c)!].sort((a, b) => a.title.localeCompare(b.title)),
+      }))
   }, [])
 
   // Close on outside click / Escape — standard popover behavior.
