@@ -469,30 +469,12 @@ function QueueCard({ title, favorite, badge, stats, flow, footer, onOpen, onTogg
         <StatColumn {...stats[1]} />
       </div>
 
+      {/* Inflow before outflow: the card reads in the same order as the
+          operation it stands for (net = in − out), and left-to-right follows
+          the real direction of the pipeline — loans arrive, then leave.
+          minWidth stays on the left column for cross-card alignment. */}
       <div style={{ display: 'flex', gap: 24 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 80 }}>
-          <span style={{
-            fontFamily: font.body,
-            fontSize: 10,
-            fontWeight: 600,
-            color: css.textPrimary,
-            letterSpacing: '0.7px',
-            textTransform: 'uppercase',
-          }}>
-            Outflow
-          </span>
-          <span style={{
-            fontFamily: font.heading,
-            fontSize: 20,
-            fontWeight: 700,
-            color: css.textPrimary,
-            letterSpacing: '-0.08px',
-            lineHeight: 1,
-          }}>
-            {flow.outflow}
-          </span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{
             fontFamily: font.body,
             fontSize: 10,
@@ -512,6 +494,28 @@ function QueueCard({ title, favorite, badge, stats, flow, footer, onOpen, onTogg
             lineHeight: 1,
           }}>
             {flow.inflow}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{
+            fontFamily: font.body,
+            fontSize: 10,
+            fontWeight: 600,
+            color: css.textPrimary,
+            letterSpacing: '0.7px',
+            textTransform: 'uppercase',
+          }}>
+            Outflow
+          </span>
+          <span style={{
+            fontFamily: font.heading,
+            fontSize: 20,
+            fontWeight: 700,
+            color: css.textPrimary,
+            letterSpacing: '-0.08px',
+            lineHeight: 1,
+          }}>
+            {flow.outflow}
           </span>
         </div>
       </div>

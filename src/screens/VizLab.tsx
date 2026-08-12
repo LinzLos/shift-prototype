@@ -801,7 +801,7 @@ export default function VizLab() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
                   <div>
                     <div style={{ fontFamily: font.body, fontSize: 12, fontWeight: 700, color: finchP.green, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Finch Style</div>
-                    <div style={{ fontFamily: font.body, fontSize: 14, color: finchP.muted }}>Loan Throughput · Outflow vs Inflow Demand</div>
+                    <div style={{ fontFamily: font.body, fontSize: 14, color: finchP.muted }}>Loan Throughput · Inflow vs Outflow Demand</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: finchP.bg === '#FFFFFF' ? '#F0F0F0' : 'rgba(255,255,255,0.07)', border: `1px solid ${finchP.dim}`, borderRadius: 8, padding: '4px 10px' }}>
@@ -823,7 +823,7 @@ export default function VizLab() {
                     {(() => { const d = delta(periodData[finchPeriod]); return <span style={{ fontFamily: font.body, fontSize: 14, color: d.positive ? finchP.green : '#FF5000', fontWeight: 600 }}>{d.str}</span> })()}
                     <span style={{ fontFamily: font.body, fontSize: 13, color: finchP.muted }}>vs period start</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 4 }}>
-                      {[{ color: finchP.green, dash: false, label: 'Outflow' }, { color: finchP.inflow, dash: true, label: 'Inflow' }].map(({ color, dash, label }) => (
+                      {[{ color: finchP.inflow, dash: true, label: 'Inflow' }, { color: finchP.green, dash: false, label: 'Outflow' }].map(({ color, dash, label }) => (
                         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke={color} strokeWidth={dash ? 1 : 1.5} strokeDasharray={dash ? '5 3' : undefined} /></svg>
                           <span style={{ fontFamily: font.body, fontSize: 13, color: finchP.muted }}>{label}</span>
@@ -951,7 +951,7 @@ export default function VizLab() {
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
                     <div>
                       <div style={{ fontFamily: font.body, fontSize: 12, fontWeight: 700, color: ledgerP.purple, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 5 }}>Ledger Style</div>
-                      <div style={{ fontFamily: font.body, fontSize: 14, color: ledgerP.muted }}>Loan Throughput · Outflow vs Inflow Demand</div>
+                      <div style={{ fontFamily: font.body, fontSize: 14, color: ledgerP.muted }}>Loan Throughput · Inflow vs Outflow Demand</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: ledgerP.dim, border: `1px solid ${ledgerP.border}`, borderRadius: 8, padding: '4px 10px' }}>
@@ -976,7 +976,7 @@ export default function VizLab() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10 }}>
                       <span style={{ fontFamily: font.body, fontSize: 13, color: ledgerP.muted }}>vs period start</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        {[{ color: ledgerP.purple, dash: false, label: 'Outflow' }, { color: ledgerP.teal, dash: true, label: 'Inflow' }].map(({ color, dash, label }) => (
+                        {[{ color: ledgerP.teal, dash: true, label: 'Inflow' }, { color: ledgerP.purple, dash: false, label: 'Outflow' }].map(({ color, dash, label }) => (
                           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke={color} strokeWidth={dash ? 1.5 : 2} strokeDasharray={dash ? '6 4' : undefined} /></svg>
                             <span style={{ fontFamily: font.body, fontSize: 13, color: ledgerP.muted }}>{label}</span>

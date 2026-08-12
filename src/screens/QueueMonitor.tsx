@@ -358,13 +358,17 @@ function InflowOutflowChart({ data }: { data: PeriodChart }) {
 
   return (
     <div>
+      {/* Inflow first so the legend reads in the same order as the section
+          heading above it ("Inflow vs. Outflow") and as net = in − out.
+          Layering is unaffected — LedgerChart z-orders by variant, not by
+          array position, so Outflow stays the area-primary on top. */}
       <LedgerChart
         xLabels={xLabels}
         viewW={480}
         viewH={188}
         series={[
-          { label: 'Outflow',     values: outflow, color: 'var(--chart-blue)',  variant: 'area' },
           { label: 'Inflow',      values: inflow,  color: 'var(--chart-azure)', variant: 'dashed' },
+          { label: 'Outflow',     values: outflow, color: 'var(--chart-blue)',  variant: 'area' },
           { label: 'Target pace', values: target,  color: 'var(--border-strong)', variant: 'reference' },
         ]}
       />
