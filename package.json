@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "scripts/check-tinywire-drift.sh",
+    "deploy": "netlify deploy --prod --build"
   },
   "dependencies": {
     "framer-motion": "^12.38.0",

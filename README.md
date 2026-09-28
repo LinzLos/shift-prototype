@@ -39,6 +39,7 @@ npm install
 npm run dev      # start the dev server (Vite)
 npm run build    # type-check + production build to dist/
 npm run preview  # serve the production build
+npm run deploy   # drift-check vendored Tiny Wire tokens, then netlify deploy --prod --build
 ```
 
 ## Credits
