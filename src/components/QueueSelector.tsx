@@ -3,7 +3,7 @@ import { queues } from '../data/queues'
 import { useQueueContext } from '../QueueContext'
 
 // Shared header queue-switcher used by Queue Monitor / Simulation / Performance /
-// Roster. Trigger matches the previous static queue label (Bricolage 600/16px
+// Roster. Trigger matches the previous static queue label (heading face 600/16px
 // tertiary) so the header typography stays consistent; adds a small chevron
 // that rotates on open. Popover matches the DatePicker / LiveIndicator visual
 // language already used in the app.
@@ -14,8 +14,8 @@ import { useQueueContext } from '../QueueContext'
 // of the picker screen would be redundant.
 
 const font = {
-  heading: "'Bricolage Grotesque', sans-serif",
-  body: "'DM Sans', sans-serif",
+  heading: 'var(--font-heading)',
+  body: 'var(--font-body)',
 }
 
 const CATEGORY_ORDER = ['Review', 'Eligibility', 'Closing', 'Fulfillment', 'Exceptions', 'Audit'] as const

@@ -1,3 +1,4 @@
+@import './lib/fonts.css'; /* vendored Tiny Wire fonts — do not edit lib/ */
 @import 'tailwindcss';
 @import './lib/tokens.css'; /* vendored Tiny Wire tokens — do not edit lib/; see tiny-wire lib/CONSUMING.md */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

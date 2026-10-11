@@ -59,8 +59,8 @@ type AsterP = typeof ASTER_DARK
 type LedgerP = typeof LEDGER_DARK
 
 const font = {
-  heading: "'Bricolage Grotesque', sans-serif",
-  body:    "'DM Sans', sans-serif",
+  heading: 'var(--font-heading)',
+  body: 'var(--font-body)',
   mono:    "'Courier New', monospace",
 }
 
